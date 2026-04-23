@@ -139,7 +139,7 @@ export default function Home() {
               {
                 icon: <Calendar className="w-6 h-6" />,
                 title: 'Date',
-                line1: 'Sunday',
+                line1: 'Saturday',
                 line2: 'May 09, 2026',
               },
               {

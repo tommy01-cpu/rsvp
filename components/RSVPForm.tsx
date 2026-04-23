@@ -157,7 +157,7 @@ export default function RSVPForm() {
             name="phone"
             value={form.phone}
             onChange={handleChange}
-            placeholder="+1 (555) 000-0000"
+            placeholder="+63 912 345 6789"
             className="w-full px-4 py-3 rounded-lg text-sm outline-none transition-all duration-200"
             style={{
               border: '1.5px solid #E8D5B7',
@@ -194,7 +194,7 @@ export default function RSVPForm() {
         </div>
       </div>
 
-      {/* Dietary */}
+      {/* Dietary
       <div>
         <label className="block font-sans-body text-xs font-700 mb-1.5 tracking-widest uppercase" style={{ color: '#8B7355' }}>
           Dietary Restrictions (optional)
@@ -214,7 +214,7 @@ export default function RSVPForm() {
           onFocus={e => (e.target.style.borderColor = '#C9A96E')}
           onBlur={e => (e.target.style.borderColor = '#E8D5B7')}
         />
-      </div>
+      </div> */}
 
       {/* Message */}
       <div>
