@@ -263,21 +263,21 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 items-start">
             <div className="text-center md:text-left">
               <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Parents of the Groom</p>
-              <p className="font-serif" style={{ color: BROWN_DARK }}>Mr. Sande T. Malinao</p>
-              <p className="font-serif" style={{ color: BROWN_DARK }}>Mrs. Susana G. Malinao</p>
+              <p className="font-serif font-semibold" style={{ color: BROWN_DARK }}>Mr. Sande T. Malinao</p>
+              <p className="font-serif font-semibold" style={{ color: BROWN_DARK }}>Mrs. Susana G. Malinao</p>
             </div>
 
             <div className="text-center md:text-right">
               <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Parents of the Bride</p>
-              <p className="font-serif" style={{ color: BROWN_DARK }}>Mr. Arnel Dungcayan</p>
-              <p className="font-serif" style={{ color: BROWN_DARK }}>Mrs. Emily Dungcayan</p>
+              <p className="font-serif font-semibold" style={{ color: BROWN_DARK }}>Mr. Arnel Dungcayan</p>
+              <p className="font-serif font-semibold" style={{ color: BROWN_DARK }}>Mrs. Emily Dungcayan</p>
             </div>
           </div>
 
           {/* Officiating minister centered */}
           <div className="text-center mb-10">
             <p className="font-sans-body text-sm tracking-wide uppercase mb-2" style={{ color: BROWN_LIGHT }}>Officiating Minister</p>
-            <p className="font-serif" style={{ color: BROWN_DARK, fontSize: '1.25rem' }}>Pastor Ronilo Garcia</p>
+            <p className="font-serif font-semibold" style={{ color: BROWN_DARK, fontSize: '1.25rem' }}>Pastor Ronilo Garcia</p>
           </div>
 
           {/* Principal sponsors: two columns (male left, female right) - force two columns */}
@@ -287,31 +287,31 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-8 max-w-2xl mx-auto">
               <div className="text-center md:text-right">
                 <div className="space-y-2">
-                  <p className="font-serif">Mr. Jayrold Visitacion</p>
-                  <p className="font-serif">Mr. Cris Santos</p>
-                  <p className="font-serif">Mr. Willy Saturno</p>
-                  <p className="font-serif">Mr. Jayson Oracion</p>
-                  <p className="font-serif">Mr. Jijian Arzadon</p>
-                  <p className="font-serif">Mr. Neil Teraza</p>
-                  <p className="font-serif">Mr. Henry Saligan</p>
-                  <p className="font-serif">Mr. Jayson Coloma</p>
-                  <p className="font-serif">Mr. Rocky Patalinghug</p>
-                  <p className="font-serif">Mr. Alan Tablada</p>
+                  <p className="font-serif font-semibold">Mr. Jayrold Visitacion</p>
+                  <p className="font-serif font-semibold">Mr. Cris Santos</p>
+                  <p className="font-serif font-semibold">Mr. Willy Saturno</p>
+                  <p className="font-serif font-semibold">Mr. Jayson Oracion</p>
+                  <p className="font-serif font-semibold">Mr. Jijian Arzadon</p>
+                  <p className="font-serif font-semibold">Mr. Neil Teraza</p>
+                  <p className="font-serif font-semibold">Mr. Henry Saligan</p>
+                  <p className="font-serif font-semibold">Mr. Jayson Coloma</p>
+                  <p className="font-serif font-semibold">Mr. Rocky Patalinghug</p>
+                  <p className="font-serif font-semibold">Mr. Alan Tablada</p>
                 </div>
               </div>
 
               <div className="text-center md:text-left">
                 <div className="space-y-2">
-                  <p className="font-serif">Mrs. Anna Marie Visitacion</p>
-                  <p className="font-serif">Mrs. Imelda Amores</p>
-                  <p className="font-serif">Mrs. Josh Querubin</p>
-                  <p className="font-serif">Mrs. Amalia Solis</p>
-                  <p className="font-serif">Mrs. Zeny Arzadon</p>
-                  <p className="font-serif">Mrs. Nhing Guda</p>
-                  <p className="font-serif">Mrs. Robee Saligan</p>
-                  <p className="font-serif">Mrs. Mhean Coloma</p>
-                  <p className="font-serif">Mrs. Joanna Patalinghug</p>
-                  <p className="font-serif">Mrs. Sonia Tablada</p>
+                  <p className="font-serif font-semibold">Mrs. Anna Marie Visitacion</p>
+                  <p className="font-serif font-semibold">Mrs. Imelda Amores</p>
+                  <p className="font-serif font-semibold">Mrs. Josh Querubin</p>
+                  <p className="font-serif font-semibold">Mrs. Amalia Solis</p>
+                  <p className="font-serif font-semibold">Mrs. Zeny Arzadon</p>
+                  <p className="font-serif font-semibold">Mrs. Nhing Guda</p>
+                  <p className="font-serif font-semibold">Mrs. Robee Saligan</p>
+                  <p className="font-serif font-semibold">Mrs. Mhean Coloma</p>
+                  <p className="font-serif font-semibold">Mrs. Joanna Patalinghug</p>
+                  <p className="font-serif font-semibold">Mrs. Sonia Tablada</p>
                 </div>
               </div>
             </div>
@@ -324,27 +324,27 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-8 max-w-3xl mx-auto mb-8">
               <div className="text-center md:text-left">
                 <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Best Man</p>
-                <p className="font-serif mt-2">Macky Nulla</p>
+                <p className="font-serif font-semibold mt-2">Macky Nulla</p>
 
                 <p className="font-sans-body text-sm uppercase mt-6" style={{ color: BROWN_LIGHT }}>Groomsmen</p>
                 <div className="mt-2 space-y-1">
-                  <p className="font-serif">Emmanuel Navarez Jr.</p>
-                  <p className="font-serif">John Arwin Dungcayan</p>
-                  <p className="font-serif">Darwin Dungcayan</p>
-                  <p className="font-serif">Jaryll Dungcayan</p>
+                  <p className="font-serif font-semibold">Emmanuel Navarez Jr.</p>
+                  <p className="font-serif font-semibold">John Arwin Dungcayan</p>
+                  <p className="font-serif font-semibold">Darwin Dungcayan</p>
+                  <p className="font-serif font-semibold">Jaryll Dungcayan</p>
                 </div>
               </div>
 
               <div className="text-center md:text-right">
                 <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Maid of Honor</p>
-                <p className="font-serif mt-2">Jessalyn R. Cruz</p>
+                <p className="font-serif font-semibold mt-2">Jessalyn R. Cruz</p>
 
                 <p className="font-sans-body text-sm uppercase mt-6" style={{ color: BROWN_LIGHT }}>Bridesmaid</p>
                 <div className="mt-2 space-y-1">
-                  <p className="font-serif">Emelyn Yap Jandoc</p>
-                  <p className="font-serif">Sharon Tabisaura</p>
-                  <p className="font-serif">Abegail Apolinar</p>
-                  <p className="font-serif">Alexa Granadil</p>
+                  <p className="font-serif font-semibold">Emelyn Yap Jandoc</p>
+                  <p className="font-serif font-semibold">Sharon Tabisaura</p>
+                  <p className="font-serif font-semibold">Abegail Apolinar</p>
+                  <p className="font-serif font-semibold">Alexa Granadil</p>
                 </div>
               </div>
             </div>
@@ -352,26 +352,26 @@ export default function Home() {
             <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
               <div>
                 <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Coin Bearer</p>
-                <p className="font-serif mt-2">Getulio Celis III</p>
-                <p className="font-serif">Sean Malinao</p>
+                <p className="font-serif font-semibold mt-2">Getulio Celis III</p>
+                <p className="font-serif font-semibold">Sean Malinao</p>
               </div>
               <div>
                 <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Bible Bearer</p>
-                <p className="font-serif mt-2">Rohan Zev</p>
-                <p className="font-serif">Gian Macaraig</p>
+                <p className="font-serif font-semibold mt-2">Rohan Zev</p>
+                <p className="font-serif font-semibold">Gian Macaraig</p>
               </div>
               <div>
                 <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Ring Bearer</p>
-                <p className="font-serif mt-2">Renz lucas Hilot</p>
+                <p className="font-serif font-semibold mt-2">Renz lucas Hilot</p>
               </div>
             </div>
 
             <div className="mt-8">
               <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Flower</p>
               <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-                <p className="font-serif">Zoey Del Rosario</p>
-                <p className="font-serif">Princess Romero</p>
-                <p className="font-serif">Jeann Faith Dela Cruz</p>
+                <p className="font-serif font-semibold">Zoey Del Rosario</p>
+                <p className="font-serif font-semibold">Princess Romero</p>
+                <p className="font-serif font-semibold">Jeann Faith Dela Cruz</p>
               </div>
             </div>
 
