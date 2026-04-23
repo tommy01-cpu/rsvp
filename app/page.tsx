@@ -1,6 +1,6 @@
 import React from 'react';
 import RSVPForm from '@/components/RSVPForm';
-import { Heart, MapPin, Clock, Calendar, Music, Utensils } from 'lucide-react';
+import { Heart, MapPin, Clock, Calendar, Music, Utensils, Camera } from 'lucide-react';
 
 const GOLD = '#C9A96E';
 const GOLD_DARK = '#A07840';
@@ -145,7 +145,7 @@ export default function Home() {
               {
                 icon: <Clock className="w-6 h-6" />,
                 title: 'Time',
-                line1: 'Ceremony at 4:00 PM',
+                line1: 'Ceremony at 9:30 AM',
                 line2: 'Reception to follow',
               },
               {
@@ -215,12 +215,15 @@ export default function Home() {
 
           <div className="space-y-0">
             {[
-              { time: '3:30 PM', label: 'Guests Arrive', icon: <Heart className="w-4 h-4" /> },
-              { time: '4:00 PM', label: 'Wedding Ceremony', icon: <Heart className="w-4 h-4 fill-current" /> },
-              { time: '5:00 PM', label: 'Cocktail Hour', icon: <Utensils className="w-4 h-4" /> },
-              { time: '6:30 PM', label: 'Dinner & Reception', icon: <Utensils className="w-4 h-4" /> },
-              { time: '9:00 PM', label: 'Dancing & Celebration', icon: <Music className="w-4 h-4" /> },
-              { time: '11:30 PM', label: 'Send-off', icon: <Heart className="w-4 h-4 fill-current" /> },
+                { time: '9:30 AM', label: 'Entourage', icon: <Heart className="w-4 h-4" /> },
+                { time: '9:45 AM', label: 'Preaching', icon: <Clock className="w-4 h-4" /> },
+                { time: '10:05 AM', label: 'Wedding Ceremony (including vows)', icon: <Heart className="w-4 h-4 fill-current" /> },
+                { time: '10:35 AM', label: 'Photos & Preparations', icon: <Camera className="w-4 h-4" /> },
+                { time: '10:50 AM', label: 'Wedding Toast (Macky & Jessalyn)', icon: <Music className="w-4 h-4" /> },
+                { time: '11:00 AM', label: 'Lunch & Activities', icon: <Utensils className="w-4 h-4" /> },
+                { time: '11:50 AM', label: 'Tossing of Bouquet', icon: <Heart className="w-4 h-4" /> },
+                { time: '11:55 AM', label: 'Slicing & Eating of Cake', icon: <Utensils className="w-4 h-4" /> },
+                { time: '12:00 PM', label: 'Messages (sponsors, relatives, etc.)', icon: <Heart className="w-4 h-4" /> },
             ].map((item, i, arr) => (
               <div key={i} className="relative flex items-start gap-6 pb-0">
                 {/* timeline line */}
@@ -399,19 +402,18 @@ export default function Home() {
               Venue
             </p>
             <h2 className="font-serif mb-4"
-              style={{ fontSize: 'clamp(1.6rem, 3.5vw, 2.6rem)', fontWeight: 300, color: BROWN_DARK }}>
-              The Potter's House Christian Center
+              style={{ fontSize: 'clamp(1.6rem, 3.5vw, 2.3rem)', fontWeight: 300, color: BROWN_DARK }}>
+              The Potter's House Christian Center Las Piñas Church
             </h2>
             <div className="mb-5" style={{ width: 48, height: 2, background: GOLD }} />
             <p className="font-sans-body mb-6 leading-relaxed" style={{ color: BROWN_MID, fontSize: '0.95rem' }}>
-              Nestled in the heart of Napa Valley, Rosewood Estate offers breathtaking vineyard views,
-              manicured gardens, and an elegant ballroom for an unforgettable celebration.
+              God has placed everything necessary to accomplish His will in the setting of the local church.Ephesians 1:22-23 …the church. Which is his body, the fullness of him who fills everything in every way.God’s will is accomplished in us and through us as connect and commit ourselves to a local church.
             </p>
             <div className="flex items-start gap-3 mb-3">
               <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: GOLD }} />
               <div>
-                <p className="font-sans-body text-sm" style={{ color: BROWN_DARK }}>1234 Vineyard Lane</p>
-                <p className="font-sans-body text-sm" style={{ color: BROWN_MID }}>Napa, California 94558</p>
+                <p className="font-sans-body text-sm" style={{ color: BROWN_DARK }}>347 Diego Cera Avenue, Pulang Lupa</p>
+                <p className="font-sans-body text-sm" style={{ color: BROWN_MID }}>Las Piñas City, Philippines</p>
               </div>
             </div>
             <a
@@ -439,7 +441,7 @@ export default function Home() {
               Kindly Reply
             </h2>
             <p className="font-sans-body text-sm" style={{ color: BROWN_LIGHT }}>
-              Please RSVP by <strong style={{ color: BROWN_MID }}>August 1, 2026</strong>
+              Please RSVP by <strong style={{ color: BROWN_MID }}>May 03, 2026</strong>
             </p>
             <Divider />
           </div>
