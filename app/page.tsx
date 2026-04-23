@@ -217,13 +217,13 @@ export default function Home() {
             {[
                 { time: '9:30 AM', label: 'Entourage', icon: <Heart className="w-4 h-4" /> },
                 { time: '9:45 AM', label: 'Preaching', icon: <Clock className="w-4 h-4" /> },
-                { time: '10:05 AM', label: 'Wedding Ceremony (including vows)', icon: <Heart className="w-4 h-4 fill-current" /> },
+                { time: '10:05 AM', label: 'Wedding Ceremony', icon: <Heart className="w-4 h-4 fill-current" /> },
                 { time: '10:35 AM', label: 'Photos & Preparations', icon: <Camera className="w-4 h-4" /> },
-                { time: '10:50 AM', label: 'Wedding Toast (Macky & Jessalyn)', icon: <Music className="w-4 h-4" /> },
+                { time: '10:50 AM', label: 'Wedding Toast', icon: <Music className="w-4 h-4" /> },
                 { time: '11:00 AM', label: 'Lunch & Activities', icon: <Utensils className="w-4 h-4" /> },
                 { time: '11:50 AM', label: 'Tossing of Bouquet', icon: <Heart className="w-4 h-4" /> },
                 { time: '11:55 AM', label: 'Slicing & Eating of Cake', icon: <Utensils className="w-4 h-4" /> },
-                { time: '12:00 PM', label: 'Messages (sponsors, relatives, etc.)', icon: <Heart className="w-4 h-4" /> },
+                { time: '12:00 PM', label: 'Messages', icon: <Heart className="w-4 h-4" /> },
             ].map((item, i, arr) => (
               <div key={i} className="relative flex items-start gap-6 pb-0">
                 {/* timeline line */}
