@@ -240,17 +240,17 @@ export default function Home() {
                     style={{ height: 48, background: BORDER }} />
                 )}
                 {/* dot */}
-                <div className="flex-shrink-0 w-24 text-right">
+                <div className="flex-shrink-0 w-24 text-right" style={{ marginTop: 12 }}>
                   <span className="font-sans-body text-xs tracking-wide"
-                    style={{ color: BROWN_LIGHT }}>{item.time}</span>
+                    style={{ color: BROWN_LIGHT, display: 'inline-block' }}>{item.time}</span>
                 </div>
                 <div
                   className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mt-0.5"
-                  style={{ background: GOLD, color: '#fff' }}
+                  style={{ background: GOLD, color: '#fff' ,marginTop: 12}}
                 >
                   <span style={{ transform: 'scale(0.65)', display: 'block' }}>{item.icon}</span>
                 </div>
-                <div className="pb-10 text-left">
+                <div className="pb-10 text-left" style={{ marginTop: 12 }}>
                   <p className="font-serif" style={{ fontSize: '1.1rem', color: BROWN_DARK }}>{item.label}</p>
                 </div>
               </div>
