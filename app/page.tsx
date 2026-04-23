@@ -1,5 +1,7 @@
 import React from 'react';
 import RSVPForm from '@/components/RSVPForm';
+import FallingText from '@/components/FallingText';
+import ScrollReveal from '@/components/ScrollReveal';
 import { Heart, MapPin, Clock, Calendar, Music, Utensils, Camera } from 'lucide-react';
 
 const GOLD = '#C9A96E';
@@ -15,7 +17,7 @@ function Divider() {
   return (
     <div className="flex items-center justify-center gap-4 my-8">
       <div style={{ width: 60, height: 1, background: GOLD, opacity: 0.5 }} />
-      <Heart style={{ color: GOLD, fill: GOLD, width: 14, height: 14 }} />
+      <Heart className="heart-pulse" style={{ color: GOLD, fill: GOLD, width: 14, height: 14 }} />
       <div style={{ width: 60, height: 1, background: GOLD, opacity: 0.5 }} />
     </div>
   );
@@ -31,7 +33,7 @@ export default function Home() {
           <img
             src="https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=1600"
             alt="Claire and James"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover hero-zoom"
           />
           <div
             className="absolute inset-0"
@@ -112,12 +114,12 @@ export default function Home() {
             A Celebration of Love
           </h2>
           <Divider />
-          <p className="font-serif italic leading-relaxed"
+          <FallingText className="font-serif italic leading-relaxed"
             style={{ fontSize: 'clamp(1.05rem, 2.5vw, 1.3rem)', color: BROWN_MID, lineHeight: 1.8 }}>
             We joyfully invite you to share in the celebration of our wedding day,
             as we exchange vows and begin our journey together as husband and wife.
             Your presence will make this day truly unforgettable.
-          </p>
+          </FallingText>
         </div>
       </section>
 
@@ -157,7 +159,8 @@ export default function Home() {
             ].map((card) => (
               <div
                 key={card.title}
-                className="text-center p-8 rounded-2xl"
+                className="text-center p-8 rounded-2xl reveal-on-scroll"
+                data-animate="slide-in-right"
                 style={{ background: CREAM, border: `1px solid ${BORDER}` }}
               >
                 <div className="flex items-center justify-center mb-4"
@@ -184,7 +187,7 @@ export default function Home() {
 
       {/* ── GALLERY STRIP ─────────────────────── */}
       <section className="py-0">
-        <div className="grid grid-cols-1 md:grid-cols-3" style={{ minHeight: 'clamp(260px, 40vw, 480px)' }}>
+          <div className="grid grid-cols-1 md:grid-cols-3" style={{ minHeight: 'clamp(260px, 40vw, 480px)' }}>
           {[
             'https://images.pexels.com/photos/2253870/pexels-photo-2253870.jpeg?auto=compress&cs=tinysrgb&w=800',
             'https://images.pexels.com/photos/1128783/pexels-photo-1128783.jpeg?auto=compress&cs=tinysrgb&w=800',
@@ -194,7 +197,8 @@ export default function Home() {
               <img
                 src={src}
                 alt={`Wedding photo ${i + 1}`}
-                className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 reveal-on-scroll"
+                data-animate={i % 2 === 0 ? 'slide-in-left' : 'slide-in-right'}
               />
               <div className="absolute inset-0" style={{ background: 'rgba(20,10,5,0.08)' }} />
             </div>
@@ -225,7 +229,11 @@ export default function Home() {
                 { time: '11:55 AM', label: 'Slicing & Eating of Cake', icon: <Utensils className="w-4 h-4" /> },
                 { time: '12:00 PM', label: 'Messages', icon: <Heart className="w-4 h-4" /> },
             ].map((item, i, arr) => (
-              <div key={i} className="relative flex items-start gap-6 pb-0">
+              <div
+                key={i}
+                className="relative flex items-start gap-6 pb-0 reveal-on-scroll opacity-0"
+                style={{ animationDelay: `${i * 120}ms` }}
+              >
                 {/* timeline line */}
                 {i < arr.length - 1 && (
                   <div className="absolute left-[47px] top-10 w-px"
@@ -265,30 +273,33 @@ export default function Home() {
           {/* Parents row: two columns (groom left, bride right). Mobile: centered text */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 items-start">
             <div className="text-center md:text-left">
-              <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Parents of the Groom</p>
-              <p className="font-serif font-semibold" style={{ color: BROWN_DARK }}>Mr. Sande T. Malinao</p>
-              <p className="font-serif font-semibold" style={{ color: BROWN_DARK }}>Mrs. Susana G. Malinao</p>
+              <div className="reveal-on-scroll" data-animate="slide-in-right" style={{ animationDelay: '0.12s' }}>
+                <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Parents of the Groom</p>
+                <p className="font-serif font-semibold" style={{ color: BROWN_DARK }}>Mr. Sande T. Malinao</p>
+                <p className="font-serif font-semibold" style={{ color: BROWN_DARK }}>Mrs. Susana G. Malinao</p>
+              </div>
             </div>
-
             <div className="text-center md:text-right">
-              <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Parents of the Bride</p>
-              <p className="font-serif font-semibold" style={{ color: BROWN_DARK }}>Mr. Arnel Dungcayan</p>
-              <p className="font-serif font-semibold" style={{ color: BROWN_DARK }}>Mrs. Emily Dungcayan</p>
+              <div className="reveal-on-scroll" data-animate="slide-in-left" style={{ animationDelay: '0.14s' }}>
+                <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Parents of the Bride</p>
+                <p className="font-serif font-semibold" style={{ color: BROWN_DARK }}>Mr. Arnel Dungcayan</p>
+                <p className="font-serif font-semibold" style={{ color: BROWN_DARK }}>Mrs. Emily Dungcayan</p>
+              </div>
             </div>
           </div>
 
           {/* Officiating minister centered */}
-          <div className="text-center mb-10">
+          <div className="text-center mb-10 reveal-on-scroll" data-animate="reveal-fade" style={{ animationDelay: '0.16s' }}>
             <p className="font-sans-body text-sm tracking-wide uppercase mb-2" style={{ color: BROWN_LIGHT }}>Officiating Minister</p>
             <p className="font-serif font-semibold" style={{ color: BROWN_DARK, fontSize: '1.25rem' }}>Pastor Ronilo Garcia</p>
           </div>
 
           {/* Principal sponsors: two columns (male left, female right) - force two columns */}
-          <div className="mb-10">
+          <div className="mb-10 reveal-on-scroll" data-animate="reveal-fade" style={{ animationDelay: '0.12s' }}>
             <p className="font-sans-body text-sm tracking-wide uppercase mb-6" style={{ color: BROWN_LIGHT }}>Principal Sponsors</p>
 
             <div className="grid grid-cols-2 gap-8 max-w-2xl mx-auto">
-              <div className="text-center md:text-right">
+              <div className="text-center md:text-right reveal-on-scroll" data-animate="slide-in-right" style={{ animationDelay: '0.18s' }}>
                 <div className="space-y-2">
                   <p className="font-serif font-semibold">Mr. Jayrold Visitacion</p>
                   <p className="font-serif font-semibold">Mr. Cris Santos</p>
@@ -303,7 +314,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="text-center md:text-left">
+              <div className="text-center md:text-left reveal-on-scroll" data-animate="slide-in-left" style={{ animationDelay: '0.2s' }}>
                 <div className="space-y-2">
                   <p className="font-serif font-semibold">Mrs. Anna Marie Visitacion</p>
                   <p className="font-serif font-semibold">Mrs. Imelda Amores</p>
@@ -325,7 +336,7 @@ export default function Home() {
             <p className="font-sans-body text-sm tracking-wide uppercase mb-6" style={{ color: BROWN_LIGHT }}>Secondary Sponsors</p>
 
             <div className="grid grid-cols-2 gap-8 max-w-3xl mx-auto mb-8">
-              <div className="text-center md:text-left">
+              <div className="text-center md:text-left reveal-on-scroll" data-animate="slide-in-right" style={{ animationDelay: '0.22s' }}>
                 <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Best Man</p>
                 <p className="font-serif font-semibold mt-2">Macky Nulla</p>
 
@@ -338,7 +349,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="text-center md:text-right">
+              <div className="text-center md:text-right reveal-on-scroll" data-animate="slide-in-left" style={{ animationDelay: '0.24s' }}>
                 <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Maid of Honor</p>
                 <p className="font-serif font-semibold mt-2">Jessalyn R. Cruz</p>
 
@@ -353,23 +364,23 @@ export default function Home() {
             </div>
 
             <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
-              <div>
+              <div className="reveal-on-scroll" data-animate="slide-in-right" style={{ animationDelay: '0.26s' }}>
                 <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Coin Bearer</p>
                 <p className="font-serif font-semibold mt-2">Getulio Celis III</p>
                 <p className="font-serif font-semibold">Sean Malinao</p>
               </div>
-              <div>
+              <div className="reveal-on-scroll" data-animate="reveal-fade" style={{ animationDelay: '0.28s' }}>
                 <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Bible Bearer</p>
                 <p className="font-serif font-semibold mt-2">Rohan Zev</p>
                 <p className="font-serif font-semibold">Gian Macaraig</p>
               </div>
-              <div>
+              <div className="reveal-on-scroll" data-animate="slide-in-left" style={{ animationDelay: '0.3s' }}>
                 <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Ring Bearer</p>
                 <p className="font-serif font-semibold mt-2">Renz lucas Hilot</p>
               </div>
             </div>
 
-            <div className="mt-8">
+            <div className="mt-8 reveal-on-scroll" data-animate="reveal-fade" style={{ animationDelay: '0.32s' }}>
               <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Flower</p>
               <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
                 <p className="font-serif font-semibold">Zoey Del Rosario</p>
@@ -388,7 +399,7 @@ export default function Home() {
       {/* ── VENUE SECTION ─────────────────────── */}
       <section className="overflow-hidden" style={{ background: CREAM_SECTION }}>
         <div className="grid grid-cols-1 md:grid-cols-2" style={{ minHeight: 420 }}>
-          <div className="relative" style={{ minHeight: 280 }}>
+          <div className="relative reveal-on-scroll" data-animate="slide-in-left" style={{ minHeight: 280, animationDelay: '0.34s' }}>
             <img
               src="https://images.pexels.com/photos/169198/pexels-photo-169198.jpeg?auto=compress&cs=tinysrgb&w=900"
               alt="Wedding venue"
@@ -454,6 +465,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <ScrollReveal />
 
       {/* ── FOOTER ────────────────────────────── */}
       <footer className="px-6 py-14 text-center" style={{ background: BROWN_DARK }}>

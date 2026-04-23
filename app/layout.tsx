@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Lato } from 'next/font/google';
+import ScrollRestoration from '@/components/ScrollRestoration';
 
 const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
@@ -23,7 +24,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${cormorant.variable} ${lato.variable}`}>{children}</body>
+      <body className={`${cormorant.variable} ${lato.variable}`}>
+        <ScrollRestoration />
+        {children}
+      </body>
     </html>
   );
 }
