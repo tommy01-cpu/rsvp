@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Download, LogOut, Save, Trash2, Upload, Plus, Printer } from 'lucide-react';
 
 type WeddingRow = { id: string; slug: string; title: string; theme_key?: string };
@@ -44,6 +44,7 @@ type DetailRow = {
   dress_code_title: string;
   dress_code_description: string;
   entourage_verse: string;
+  invitation_link: string;
 };
 type SectionRow = {
   id: string;
@@ -99,6 +100,10 @@ type AccessScope = {
   username: string;
   wedding_id: string | null;
 };
+type ImageMeta = {
+  width: number;
+  height: number;
+};
 
 const DEFAULT_COUPLE: CoupleRow = {
   bride_name: '',
@@ -139,6 +144,7 @@ const DEFAULT_DETAILS: DetailRow = {
   dress_code_title: 'Dress Code',
   dress_code_description: '',
   entourage_verse: '',
+  invitation_link: '',
 };
 
 const SECTION_KEYS = [
@@ -198,6 +204,7 @@ const TEMPLATE_OPTIONS = [
 
 export default function AdminPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -220,6 +227,9 @@ export default function AdminPage() {
 
   const [newWedding, setNewWedding] = useState({ slug: '', title: '' });
   const [newUser, setNewUser] = useState({ wedding_id: '', username: '', password: '' });
+  const [heroMeta, setHeroMeta] = useState<ImageMeta | null>(null);
+  const [venueMeta, setVenueMeta] = useState<ImageMeta | null>(null);
+  const [printPreset, setPrintPreset] = useState<'normal' | 'fold' | 'fold-half'>('normal');
   const [newFaq, setNewFaq] = useState({ question: '', answer: '' });
   const [newEvent, setNewEvent] = useState({
     event_name: '',
@@ -236,6 +246,21 @@ export default function AdminPage() {
   });
 
   const selectedWedding = weddings.find((w) => w.id === selectedWeddingId) || null;
+  const buildInvitationLink = (domain: string, slug?: string) => {
+    const cleanDomain = (domain || '').trim().replace(/\/+$/, '');
+    const cleanSlug = (slug || '').trim().replace(/^\/+|\/+$/g, '');
+    if (!cleanDomain) return '';
+    if (!cleanSlug) return cleanDomain;
+    return `${cleanDomain}/${cleanSlug}`;
+  };
+  const invitationDomain = (details.invitation_link || '').trim().replace(/\/+$/, '');
+  const invitationPreviewLink = buildInvitationLink(invitationDomain, selectedWedding?.slug);
+  const selectedPrintUrl = useMemo(() => {
+    if (!selectedWedding) return '#';
+    if (printPreset === 'fold') return `/${selectedWedding.slug}/print?layout=fold&autoprint=1`;
+    if (printPreset === 'fold-half') return `/${selectedWedding.slug}/print?layout=fold-half&autoprint=1`;
+    return `/${selectedWedding.slug}/print?autoprint=1`;
+  }, [selectedWedding, printPreset]);
   const refreshPreview = () => setPreviewVersion((v) => v + 1);
   const normalizeAnimation = (value?: string) => {
     const raw = (value || '').trim();
@@ -293,9 +318,30 @@ export default function AdminPage() {
     return parsed.toLocaleDateString('en-US', { weekday: 'long' });
   };
 
+  const readImageMeta = (url: string, setter: (meta: ImageMeta | null) => void) => {
+    const source = (url || '').trim();
+    if (!source) {
+      setter(null);
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => setter({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = () => setter(null);
+    img.src = source;
+  };
+
   useEffect(() => {
     init();
   }, []);
+
+  useEffect(() => {
+    readImageMeta(details.hero_image_url, setHeroMeta);
+  }, [details.hero_image_url]);
+
+  useEffect(() => {
+    readImageMeta(details.venue_image_url, setVenueMeta);
+  }, [details.venue_image_url]);
 
   const notify = (message: string, type: 'success' | 'error' = 'success') => {
     setStatusType(type);
@@ -328,6 +374,15 @@ export default function AdminPage() {
           wedding_id: mappedUser.wedding_id,
         };
       }
+    }
+    const inUsersPortal = pathname.startsWith('/users');
+    if (scope.role === 'editor' && !inUsersPortal) {
+      router.replace('/users');
+      return;
+    }
+    if (scope.role === 'admin' && inUsersPortal) {
+      router.replace('/admin');
+      return;
     }
     setAccessScope(scope);
     await loadWeddings(scope.wedding_id);
@@ -422,7 +477,7 @@ export default function AdminPage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/admin/login');
+    router.push(pathname.startsWith('/users') ? '/users/login' : '/admin/login');
   };
 
   const createWedding = async () => {
@@ -982,59 +1037,24 @@ export default function AdminPage() {
                   >
                     Open Full Page: /{selectedWedding.slug}
                   </a>
-                  <a
-                    href={`/${selectedWedding.slug}/print`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
-                    style={{ background: '#fff', color: '#6B5744', border: '1.5px solid #E8D5B7' }}
+                  <select
+                    value={printPreset}
+                    onChange={(e) => setPrintPreset(e.target.value as 'normal' | 'fold' | 'fold-half')}
+                    className="px-3 py-2 rounded-lg text-sm"
+                    style={{ border: '1.5px solid #E8D5B7', background: '#fff', color: '#6B5744' }}
                   >
-                    <Printer className="w-4 h-4" /> Open Print View
-                  </a>
+                    <option value="normal">Print Layout: Standard</option>
+                    <option value="fold">Print Layout: Folded (Duplex)</option>
+                    <option value="fold-half">Print Layout: Folded 2-up</option>
+                  </select>
                   <a
-                    href={`/${selectedWedding.slug}/print?layout=fold`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
-                    style={{ background: '#fff', color: '#6B5744', border: '1.5px solid #E8D5B7' }}
-                  >
-                    <Printer className="w-4 h-4" /> Open Folded View
-                  </a>
-                  <a
-                    href={`/${selectedWedding.slug}/print?layout=fold-half`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
-                    style={{ background: '#fff', color: '#6B5744', border: '1.5px solid #E8D5B7' }}
-                  >
-                    <Printer className="w-4 h-4" /> Open Folded 2-up
-                  </a>
-                  <a
-                    href={`/${selectedWedding.slug}/print?autoprint=1`}
+                    href={selectedPrintUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
                     style={{ background: '#C9A96E', color: '#fff' }}
                   >
                     <Download className="w-4 h-4" /> Print / Save PDF
-                  </a>
-                  <a
-                    href={`/${selectedWedding.slug}/print?layout=fold&autoprint=1`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
-                    style={{ background: '#C9A96E', color: '#fff' }}
-                  >
-                    <Download className="w-4 h-4" /> Print Folded (Duplex)
-                  </a>
-                  <a
-                    href={`/${selectedWedding.slug}/print?layout=fold-half&autoprint=1`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
-                    style={{ background: '#C9A96E', color: '#fff' }}
-                  >
-                    <Download className="w-4 h-4" /> Print Folded 2-up
                   </a>
                 </div>
                 <iframe
@@ -1122,6 +1142,59 @@ export default function AdminPage() {
                 <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Google Map Link</label>
                 <input value={details.map_link} onChange={(e) => setDetails((p) => ({ ...p, map_link: e.target.value }))} placeholder="Map Link" className="w-full px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
               </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Domain</label>
+                <input
+                  value={invitationDomain}
+                  onChange={(e) =>
+                    accessScope.role === 'admin' &&
+                    setDetails((p) => ({
+                      ...p,
+                      invitation_link: e.target.value.trim(),
+                    }))
+                  }
+                  placeholder="https://project-jcf0d.vercel.app"
+                  readOnly={accessScope.role !== 'admin'}
+                  className="w-full px-3 py-2 rounded-lg"
+                  style={{
+                    border: '1.5px solid #E8D5B7',
+                    background: accessScope.role === 'admin' ? '#fff' : '#FFF8EE',
+                    color: accessScope.role === 'admin' ? '#2C1810' : '#8B7355',
+                  }}
+                />
+
+                <label className="block text-xs mt-3 mb-1" style={{ color: '#6B5744' }}>Invitation Link</label>
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2">
+                  <input
+                    value={invitationPreviewLink}
+                    readOnly
+                    className="w-full px-3 py-2 rounded-lg"
+                    style={{
+                      border: '1.5px solid #E8D5B7',
+                      background: '#FFF8EE',
+                      color: '#8B7355',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!invitationPreviewLink) return;
+                      await navigator.clipboard.writeText(invitationPreviewLink);
+                      notify('Invitation link copied.');
+                    }}
+                    className="px-4 py-2 rounded-lg text-sm"
+                    style={{ background: '#C9A96E', color: '#fff' }}
+                    disabled={!invitationPreviewLink}
+                  >
+                    Copy Link
+                  </button>
+                </div>
+                <p className="text-xs mt-1" style={{ color: '#8B7355' }}>
+                  {accessScope.role === 'admin'
+                    ? `Enter domain only. Slug auto-appends from current wedding (${selectedWedding?.slug || 'no-slug'}).`
+                    : 'Visible only. Ask admin if this link needs to be changed.'}
+                </p>
+              </div>
               <div>
                 <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Mark Calendar: Day Label</label>
                 <input value={details.event_day_label} onChange={(e) => setDetails((p) => ({ ...p, event_day_label: e.target.value }))} placeholder="Saturday" className="w-full px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
@@ -1147,9 +1220,13 @@ export default function AdminPage() {
                   style={{ border: '1.5px solid #E8D5B7' }}
                 />
                 <input type="file" accept="image/*" className="mt-2" onChange={(e) => e.target.files?.[0] && uploadContentImage(e.target.files[0], 'hero_image_url')} />
+                <p className="text-xs mt-1" style={{ color: '#8B7355' }}>
+                  Recommended hero size: 1920 x 1080 (16:9).
+                  {heroMeta ? ` Current image: ${heroMeta.width} x ${heroMeta.height}.` : ''}
+                </p>
                 <div className="mt-2 rounded-lg overflow-hidden" style={{ border: '1px solid #E8D5B7', background: '#fff' }}>
                   {details.hero_image_url ? (
-                    <img src={details.hero_image_url} alt="Hero preview" className="w-full h-40 object-cover" />
+                    <img src={details.hero_image_url} alt="Hero preview" className="w-full h-40 object-contain" style={{ background: '#F7F0E4' }} />
                   ) : (
                     <p className="text-xs px-3 py-6" style={{ color: '#8B7355' }}>No hero image preview yet.</p>
                   )}
@@ -1165,9 +1242,13 @@ export default function AdminPage() {
                   style={{ border: '1.5px solid #E8D5B7' }}
                 />
                 <input type="file" accept="image/*" className="mt-2" onChange={(e) => e.target.files?.[0] && uploadContentImage(e.target.files[0], 'venue_image_url')} />
+                <p className="text-xs mt-1" style={{ color: '#8B7355' }}>
+                  Recommended venue size: 1600 x 900 (16:9).
+                  {venueMeta ? ` Current image: ${venueMeta.width} x ${venueMeta.height}.` : ''}
+                </p>
                 <div className="mt-2 rounded-lg overflow-hidden" style={{ border: '1px solid #E8D5B7', background: '#fff' }}>
                   {details.venue_image_url ? (
-                    <img src={details.venue_image_url} alt="Venue preview" className="w-full h-40 object-cover" />
+                    <img src={details.venue_image_url} alt="Venue preview" className="w-full h-40 object-contain" style={{ background: '#F7F0E4' }} />
                   ) : (
                     <p className="text-xs px-3 py-6" style={{ color: '#8B7355' }}>No venue image preview yet.</p>
                   )}

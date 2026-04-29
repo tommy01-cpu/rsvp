@@ -150,7 +150,8 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
           <img
             src={content.heroImageUrl}
             alt={`${content.brideName} and ${content.groomName}`}
-            className="w-full h-full object-cover hero-zoom"
+            className="w-full h-full object-contain hero-zoom"
+            style={{ background: '#1A120B' }}
           />
           <div
             className="absolute inset-0"
@@ -243,7 +244,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
           {inviteSplitLayout ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center" style={{ maxWidth: 1080, margin: '0 auto' }}>
               <div className={`relative overflow-hidden ${isLuxe ? 'rounded-[2rem]' : 'rounded-2xl'}`} style={{ height: isLuxe ? 460 : 420, border: `1px solid ${BORDER}`, boxShadow: theme.cardShadow }}>
-                <img src={invitationImage} alt="Invitation visual" className="w-full h-full object-cover" />
+                <img src={invitationImage} alt="Invitation visual" className="w-full h-full object-contain" style={{ background: '#F7F0E4' }} />
                 <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(20,10,5,0.42), rgba(20,10,5,0.06))' }} />
               </div>
               <div className="text-center md:text-left">
@@ -293,7 +294,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
               {!isClassic && (
                 <div className="mt-10 reveal-on-scroll opacity-0" data-animate={sectionAnim('invitation', 'reveal-up')}>
                   <div className="relative overflow-hidden rounded-2xl mx-auto" style={{ maxWidth: 560, height: templateKey === 'filmstrip_story' ? 240 : 220, border: `1px solid ${BORDER}` }}>
-                    <img src={invitationImage} alt="Invitation visual" className="w-full h-full object-cover" />
+                    <img src={invitationImage} alt="Invitation visual" className="w-full h-full object-contain" style={{ background: '#F7F0E4' }} />
                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(20,10,5,0.38), rgba(20,10,5,0.05))' }} />
                   </div>
                   <a
@@ -453,7 +454,14 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                     style={{ animationDelay: `${i * 120}ms` }}
                   >
                     {i < arr.length - 1 && (
-                      <div className="absolute left-[47px] top-10 w-px" style={{ height: 48, background: BORDER }} />
+                      <div
+                        className="absolute top-10 w-px"
+                        style={{
+                          left: 'calc(6rem + 1.5rem + 0.75rem)',
+                          height: 48,
+                          background: BORDER,
+                        }}
+                      />
                     )}
                     <div className="flex-shrink-0 w-24 text-right" style={{ marginTop: 12 }}>
                       <span className="font-sans-body text-xs tracking-wide" style={{ color: BROWN_LIGHT, display: 'inline-block' }}>
@@ -693,7 +701,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
         <section id="venue" className="overflow-hidden reveal-on-scroll opacity-0" data-animate={sectionAnim('venue', 'reveal-fade')} style={{ background: CREAM_SECTION }}>
           <div className="grid grid-cols-1 md:grid-cols-2" style={{ minHeight: 420 }}>
             <div className="relative reveal-on-scroll opacity-0" data-animate={sectionAnim('venue', 'reveal-left')} style={{ minHeight: 280, animationDelay: '0.34s' }}>
-              <img src={content.venueImageUrl} alt="Wedding venue" className="w-full h-full object-cover" style={{ minHeight: 280 }} />
+              <img src={content.venueImageUrl} alt="Wedding venue" className="w-full h-full object-contain" style={{ minHeight: 280, background: '#F7F0E4' }} />
               <div className="absolute inset-0" style={{ background: 'rgba(20,10,5,0.12)' }} />
             </div>
             <div className="flex flex-col justify-center px-8 md:px-14 py-14">

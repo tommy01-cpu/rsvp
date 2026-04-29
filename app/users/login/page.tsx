@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { Heart, Loader as Loader2, CircleAlert as AlertCircle } from 'lucide-react';
 
-export default function AdminLoginPage() {
+export default function UsersLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,38 +17,46 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
+    const normalizedEmail = email.trim().toLowerCase();
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
       password,
     });
 
-    if (error) {
-      setError(error.message);
+    if (authError) {
+      setError(authError.message);
       setLoading(false);
-    } else {
-      const normalizedEmail = email.trim().toLowerCase();
-      const { data: mappedUser, error: mapError } = await supabase
-        .from('users')
-        .select('id, username, password, wedding_id')
-        .eq('username', normalizedEmail)
-        .maybeSingle();
-
-      if (mapError) {
-        await supabase.auth.signOut();
-        setError(`User scope check failed: ${mapError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      if (mappedUser) {
-        await supabase.auth.signOut();
-        setError('This account is a user account. Please login at /users/login.');
-        setLoading(false);
-        return;
-      }
-
-      router.push('/admin');
+      return;
     }
+
+    const { data: mappedUser, error: mapError } = await supabase
+      .from('users')
+      .select('id, username, password, wedding_id')
+      .eq('username', normalizedEmail)
+      .maybeSingle();
+
+    if (mapError) {
+      await supabase.auth.signOut();
+      setError(`User lookup failed: ${mapError.message}`);
+      setLoading(false);
+      return;
+    }
+
+    if (!mappedUser) {
+      await supabase.auth.signOut();
+      setError('No user access mapping found. Please contact the admin.');
+      setLoading(false);
+      return;
+    }
+
+    if (mappedUser.password !== password) {
+      await supabase.auth.signOut();
+      setError('Invalid login credentials.');
+      setLoading(false);
+      return;
+    }
+
+    router.push('/users');
   };
 
   return (
@@ -60,9 +68,9 @@ export default function AdminLoginPage() {
             <span className="font-serif text-2xl" style={{ color: '#2C1810' }}>Wedding CMS</span>
             <Heart className="w-6 h-6" style={{ color: '#C9A96E', fill: '#C9A96E' }} />
           </div>
-          <h1 className="font-serif text-3xl mb-2" style={{ color: '#2C1810' }}>Admin Login</h1>
+          <h1 className="font-serif text-3xl mb-2" style={{ color: '#2C1810' }}>User Login</h1>
           <p className="font-sans-body text-sm" style={{ color: '#8B7355' }}>
-            Sign in to manage weddings and RSVPs
+            Sign in to manage your assigned wedding
           </p>
         </div>
 
@@ -85,7 +93,7 @@ export default function AdminLoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@example.com"
+                  placeholder="user@example.com"
                   className="w-full px-4 py-3 rounded-lg text-sm outline-none transition-all"
                   style={{
                     border: '1.5px solid #E8D5B7',
@@ -144,9 +152,7 @@ export default function AdminLoginPage() {
           </div>
         </form>
 
-        <p className="text-center font-sans-body text-xs mt-6" style={{ color: '#8B7355' }}>
-          Admin accounts only. User accounts should login at /users/login.
-        </p>
+       
       </div>
     </div>
   );
