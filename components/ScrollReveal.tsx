@@ -2,6 +2,44 @@
 
 import { useEffect } from 'react';
 
+const LEGACY_ANIMATION_MAP: Record<string, string> = {
+  'animate-fade-in-up': 'reveal-up',
+  'animate-fade-in': 'reveal-fade',
+  'slide-in-left': 'reveal-left',
+  'slide-in-right': 'reveal-right',
+};
+
+const KNOWN_ANIMATIONS = [
+  'reveal-fade',
+  'reveal-up',
+  'reveal-left',
+  'reveal-right',
+  'zoom-in',
+  'animate-fade-in-up',
+  'animate-fade-in',
+  'slide-in-left',
+  'slide-in-right',
+];
+
+function normalizeAnimation(raw?: string) {
+  const value = (raw || '').trim();
+  if (!value) return 'reveal-fade';
+  return LEGACY_ANIMATION_MAP[value] || value;
+}
+
+function applyAnimation(el: HTMLElement, raw?: string) {
+  const anim = normalizeAnimation(raw);
+  // Reset previous animation state so newly selected admin animation always replays.
+  el.style.animation = 'none';
+  KNOWN_ANIMATIONS.forEach((cls) => el.classList.remove(cls));
+  // Force reflow before applying the next animation class.
+  void el.offsetWidth;
+  el.style.animation = '';
+  el.classList.remove('opacity-0');
+  el.classList.add(anim);
+  el.style.willChange = 'transform, opacity';
+}
+
 export default function ScrollReveal() {
   useEffect(() => {
     // Use a conservative rootMargin and threshold to avoid triggering
@@ -19,10 +57,7 @@ export default function ScrollReveal() {
         const vh = (window.innerHeight || document.documentElement.clientHeight) || 0;
         const isVisiblyWithin = rect.top < vh && rect.bottom > 0;
         if (isVisiblyWithin) {
-          const anim = (el.dataset.animate as string) || 'animate-fade-in-up';
-          el.classList.remove('opacity-0');
-          el.classList.add(anim);
-          el.style.willChange = 'transform, opacity';
+          applyAnimation(el, el.dataset.animate as string);
           elsObserved.add(el);
           const onAnimEnd = () => {
             el.removeEventListener('animationend', onAnimEnd);
@@ -61,11 +96,7 @@ export default function ScrollReveal() {
 
         // require a minimum intersectionRatio and bounding rect overlap
         if (entry.isIntersecting && entry.intersectionRatio >= 0.12 && isVisiblyWithin) {
-          const anim = (el.dataset.animate as string) || 'animate-fade-in-up';
-            el.classList.remove('opacity-0');
-            el.classList.add(anim);
-          // hint the browser to composite transforms/opacities on GPU
-          el.style.willChange = 'transform, opacity';
+          applyAnimation(el, el.dataset.animate as string);
 
           // don't immediately unobserve until animation finishes to avoid abrupt layout changes
           const onAnimEnd = () => {

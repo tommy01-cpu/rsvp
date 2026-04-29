@@ -26,6 +26,27 @@ export default function AdminLoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
+      const normalizedEmail = email.trim().toLowerCase();
+      const { data: mappedUser, error: mapError } = await supabase
+        .from('users')
+        .select('id, username, password, wedding_id')
+        .eq('username', normalizedEmail)
+        .maybeSingle();
+
+      if (mapError) {
+        await supabase.auth.signOut();
+        setError(`User scope check failed: ${mapError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      if (mappedUser && mappedUser.password !== password) {
+        await supabase.auth.signOut();
+        setError('Invalid username/password mapping for this editor account.');
+        setLoading(false);
+        return;
+      }
+
       router.push('/admin');
     }
   };
@@ -36,12 +57,12 @@ export default function AdminLoginPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Heart className="w-6 h-6" style={{ color: '#C9A96E', fill: '#C9A96E' }} />
-            <span className="font-serif text-2xl" style={{ color: '#2C1810' }}>Claire & James</span>
+            <span className="font-serif text-2xl" style={{ color: '#2C1810' }}>Wedding CMS</span>
             <Heart className="w-6 h-6" style={{ color: '#C9A96E', fill: '#C9A96E' }} />
           </div>
           <h1 className="font-serif text-3xl mb-2" style={{ color: '#2C1810' }}>Admin Login</h1>
           <p className="font-sans-body text-sm" style={{ color: '#8B7355' }}>
-            Sign in to view and manage RSVPs
+            Sign in to manage weddings and RSVPs
           </p>
         </div>
 
@@ -124,7 +145,7 @@ export default function AdminLoginPage() {
         </form>
 
         <p className="text-center font-sans-body text-xs mt-6" style={{ color: '#8B7355' }}>
-          Need access? Create an admin account in your Supabase dashboard.
+          Need access? Ask the admin to create your Auth account and map it in User Access Manager.
         </p>
       </div>
     </div>

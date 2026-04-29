@@ -6,7 +6,12 @@ import { Check, Loader as Loader2, Heart, X } from 'lucide-react';
 
 type FormState = 'idle' | 'loading' | 'success' | 'error';
 
-export default function RSVPForm() {
+type RSVPFormProps = {
+  coupleNames?: string;
+  weddingId?: string;
+};
+
+export default function RSVPForm({ coupleNames = 'Claire & James', weddingId }: RSVPFormProps) {
   const [attending, setAttending] = useState<boolean | null>(null);
   const [formState, setFormState] = useState<FormState>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -31,10 +36,27 @@ export default function RSVPForm() {
     setFormState('loading');
     setErrorMsg('');
 
-    const { error } = await supabase.from('reservations').insert({
-      ...form,
-      attending,
-    });
+    let error: { message?: string } | null = null;
+
+    if (weddingId) {
+      const result = await supabase.from('wedding_rsvps').insert({
+        wedding_id: weddingId,
+        guest_name: form.full_name,
+        email: form.email,
+        phone: form.phone,
+        attending,
+        number_of_guests: form.guest_count,
+        message: form.message,
+        meal_preference: form.dietary_restrictions,
+      });
+      error = result.error;
+    } else {
+      const result = await supabase.from('reservations').insert({
+        ...form,
+        attending,
+      });
+      error = result.error;
+    }
 
     if (error) {
       setFormState('error');
@@ -63,7 +85,7 @@ export default function RSVPForm() {
         </p>
         <div className="mt-8 flex items-center gap-2" style={{ color: '#C9A96E' }}>
           <Heart className="w-4 h-4 fill-current" />
-          <span className="font-serif italic text-lg">Claire &amp; James</span>
+          <span className="font-serif italic text-lg">{coupleNames}</span>
           <Heart className="w-4 h-4 fill-current" />
         </div>
       </div>

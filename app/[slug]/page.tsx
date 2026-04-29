@@ -33,8 +33,8 @@ function ProgrammeIcon({ icon }: { icon: 'heart' | 'clock' | 'camera' | 'music' 
   return <Heart className="w-4 h-4" />;
 }
 
-export default async function Home() {
-  const site = await getWeddingSiteData();
+export default async function WeddingBySlugPage({ params }: { params: { slug: string } }) {
+  const site = await getWeddingSiteData(params.slug);
   const content = site.content;
   const templateKey = (site.wedding.theme_key || 'classic_grid').trim();
   const THEMES = {
@@ -857,6 +857,7 @@ export default async function Home() {
     </main>
   );
 }
+
 
 
 
