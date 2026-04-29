@@ -57,7 +57,7 @@ export default function AdminLoginPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Heart className="w-6 h-6" style={{ color: '#C9A96E', fill: '#C9A96E' }} />
-            <span className="font-serif text-2xl" style={{ color: '#2C1810' }}>Wedding CMS</span>
+            <span className="font-serif text-2xl" style={{ color: '#2C1810' }}>J7 Wedding CMS</span>
             <Heart className="w-6 h-6" style={{ color: '#C9A96E', fill: '#C9A96E' }} />
           </div>
           <h1 className="font-serif text-3xl mb-2" style={{ color: '#2C1810' }}>Admin Login</h1>

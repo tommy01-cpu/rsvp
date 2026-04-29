@@ -48,6 +48,12 @@ type DetailRow = {
   gift_registry_description: string;
   dress_code_title: string;
   dress_code_description: string;
+  dress_code_image_1?: string;
+  dress_code_image_2?: string;
+  dress_code_image_3?: string;
+  dress_code_image_1_visible?: boolean;
+  dress_code_image_2_visible?: boolean;
+  dress_code_image_3_visible?: boolean;
   entourage_verse?: string;
 };
 
@@ -58,6 +64,8 @@ type SectionRow = {
   sort_order: number;
   content_text?: string;
   animation?: string;
+  animation_duration_ms?: number;
+  animation_delay_ms?: number;
 };
 
 type EventRow = {
@@ -101,12 +109,12 @@ export type WeddingSiteData = {
   wedding: WeddingRow;
   content: WeddingContent;
   sections: Record<string, boolean>;
-  sectionConfig: Record<string, { content: string; animation: string }>;
+  sectionConfig: Record<string, { content: string; animation: string; durationMs: number; delayMs: number }>;
   sectionList: SectionRow[];
   faqs: Array<{ id: string; question: string; answer: string; is_enabled: boolean; sort_order: number }>;
   gallery: Array<{ id: string; image_url: string; title: string; is_enabled: boolean; sort_order: number }>;
   giftRegistry: { title: string; description: string };
-  dressCode: { title: string; description: string };
+  dressCode: { title: string; description: string; images: string[] };
 };
 
 export function createPublicSupabaseClient() {
@@ -139,11 +147,13 @@ function toSectionMap(sectionRows: SectionRow[]): Record<string, boolean> {
   return base;
 }
 
-function toSectionConfigMap(sectionRows: SectionRow[]): Record<string, { content: string; animation: string }> {
-  return sectionRows.reduce<Record<string, { content: string; animation: string }>>((acc, row) => {
+function toSectionConfigMap(sectionRows: SectionRow[]): Record<string, { content: string; animation: string; durationMs: number; delayMs: number }> {
+  return sectionRows.reduce<Record<string, { content: string; animation: string; durationMs: number; delayMs: number }>>((acc, row) => {
     acc[row.section_key] = {
       content: row.content_text || '',
       animation: row.animation || 'reveal-fade',
+      durationMs: row.animation_duration_ms || 850,
+      delayMs: row.animation_delay_ms || 0,
     };
     return acc;
   }, {});
@@ -279,7 +289,7 @@ export async function getWeddingSiteData(slug?: string): Promise<WeddingSiteData
       faqs: [],
       gallery: [],
       giftRegistry: { title: 'Gift Registry', description: '' },
-      dressCode: { title: 'Dress Code', description: '' },
+      dressCode: { title: 'Dress Code', description: '', images: [] },
     };
   }
 
@@ -301,7 +311,7 @@ export async function getWeddingSiteData(slug?: string): Promise<WeddingSiteData
       faqs: [],
       gallery: [],
       giftRegistry: { title: 'Gift Registry', description: '' },
-      dressCode: { title: 'Dress Code', description: '' },
+      dressCode: { title: 'Dress Code', description: '', images: [] },
     };
   }
 
@@ -350,6 +360,11 @@ export async function getWeddingSiteData(slug?: string): Promise<WeddingSiteData
     dressCode: {
       title: details?.dress_code_title || 'Dress Code',
       description: details?.dress_code_description || '',
+      images: [
+        details?.dress_code_image_1_visible !== false ? details?.dress_code_image_1 || '' : '',
+        details?.dress_code_image_2_visible !== false ? details?.dress_code_image_2 || '' : '',
+        details?.dress_code_image_3_visible !== false ? details?.dress_code_image_3 || '' : '',
+      ].filter(Boolean),
     },
   };
 }

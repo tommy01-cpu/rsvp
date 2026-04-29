@@ -43,6 +43,12 @@ type DetailRow = {
   gift_registry_description: string;
   dress_code_title: string;
   dress_code_description: string;
+  dress_code_image_1: string;
+  dress_code_image_2: string;
+  dress_code_image_3: string;
+  dress_code_image_1_visible: boolean;
+  dress_code_image_2_visible: boolean;
+  dress_code_image_3_visible: boolean;
   entourage_verse: string;
   invitation_link: string;
 };
@@ -54,6 +60,8 @@ type SectionRow = {
   sort_order: number;
   content_text: string;
   animation: string;
+  animation_duration_ms: number;
+  animation_delay_ms: number;
 };
 type FaqRow = { id: string; question: string; answer: string; is_visible: boolean; sort_order: number };
 type GalleryRow = { id: string; title: string; image_url: string; category: string; is_visible: boolean; sort_order: number };
@@ -104,6 +112,8 @@ type ImageMeta = {
   width: number;
   height: number;
 };
+type DressCodeSlot = 1 | 2 | 3;
+type ContentImageSlot = 'hero' | 'venue';
 
 const DEFAULT_COUPLE: CoupleRow = {
   bride_name: '',
@@ -143,12 +153,21 @@ const DEFAULT_DETAILS: DetailRow = {
   gift_registry_description: '',
   dress_code_title: 'Dress Code',
   dress_code_description: '',
+  dress_code_image_1: '',
+  dress_code_image_2: '',
+  dress_code_image_3: '',
+  dress_code_image_1_visible: true,
+  dress_code_image_2_visible: true,
+  dress_code_image_3_visible: true,
   entourage_verse: '',
   invitation_link: '',
 };
 
 const SECTION_KEYS = [
-  { key: 'hero', label: 'Hero' },
+  { key: 'hero_title', label: 'Hero Title' },
+  { key: 'hero_subtitle', label: 'Hero Subtitle' },
+  { key: 'hero_couple_text', label: 'Hero Couple Text' },
+  { key: 'hero_date', label: 'Hero Date' },
   { key: 'couple_info', label: 'Couple Info' },
   { key: 'story', label: 'Story' },
   { key: 'venue', label: 'Venue' },
@@ -163,12 +182,23 @@ const SECTION_KEYS = [
   { key: 'invitation', label: 'Invitation' },
 ];
 
+const SECTION_DISPLAY_ORDER: Record<string, number> = SECTION_KEYS.reduce<Record<string, number>>((acc, item, idx) => {
+  acc[item.key] = idx;
+  return acc;
+}, {});
+
 const ANIMATION_OPTIONS = [
   'reveal-fade',
   'reveal-up',
   'reveal-left',
   'reveal-right',
   'zoom-in',
+  'reveal-blur-up',
+  'reveal-rotate-in',
+  'reveal-flip-up',
+  'reveal-fall-letters',
+  'reveal-image-rise',
+  'reveal-image-zoom',
 ];
 
 const LEGACY_ANIMATION_MAP: Record<string, string> = {
@@ -230,12 +260,22 @@ export default function AdminPage() {
   const [heroMeta, setHeroMeta] = useState<ImageMeta | null>(null);
   const [venueMeta, setVenueMeta] = useState<ImageMeta | null>(null);
   const [printPreset, setPrintPreset] = useState<'normal' | 'fold' | 'fold-half'>('normal');
+  const [pendingDressCodeFiles, setPendingDressCodeFiles] = useState<Partial<Record<DressCodeSlot, File>>>({});
+  const [dressCodePreviewUrls, setDressCodePreviewUrls] = useState<Partial<Record<DressCodeSlot, string>>>({});
+  const [pendingContentFiles, setPendingContentFiles] = useState<Partial<Record<ContentImageSlot, File>>>({});
+  const [contentPreviewUrls, setContentPreviewUrls] = useState<Partial<Record<ContentImageSlot, string>>>({});
+  const [newGalleryDraft, setNewGalleryDraft] = useState<{ file: File | null; previewUrl: string; title: string; is_visible: boolean }>({
+    file: null,
+    previewUrl: '',
+    title: '',
+    is_visible: true,
+  });
+  const [sectionTimingDrafts, setSectionTimingDrafts] = useState<Record<string, { duration?: string; delay?: string }>>({});
+  const [savedSnapshot, setSavedSnapshot] = useState('');
   const [newFaq, setNewFaq] = useState({ question: '', answer: '' });
   const [newEvent, setNewEvent] = useState({
     event_name: '',
-    date_label: '',
     time_label: '',
-    location_label: '',
     icon: 'heart',
   });
   const [newEntourage, setNewEntourage] = useState({
@@ -246,6 +286,261 @@ export default function AdminPage() {
   });
 
   const selectedWedding = weddings.find((w) => w.id === selectedWeddingId) || null;
+  const buildSnapshot = (input?: {
+    couple?: CoupleRow;
+    details?: DetailRow;
+    sections?: SectionRow[];
+    faqs?: FaqRow[];
+    gallery?: GalleryRow[];
+    events?: EventRow[];
+    entourage?: EntourageRow[];
+  }) => {
+    const c = input?.couple || couple;
+    const d = input?.details || details;
+    const s = (input?.sections || sections).map((row) => ({
+      id: row.id,
+      section_key: row.section_key,
+      is_enabled: row.is_enabled,
+      sort_order: row.sort_order,
+      content_text: row.content_text,
+      animation: row.animation,
+      animation_duration_ms: row.animation_duration_ms,
+      animation_delay_ms: row.animation_delay_ms,
+    }));
+    const f = (input?.faqs || faqs).map((row) => ({
+      id: row.id,
+      question: row.question,
+      answer: row.answer,
+      is_visible: row.is_visible,
+      sort_order: row.sort_order,
+    }));
+    const g = (input?.gallery || gallery).map((row) => ({
+      id: row.id,
+      title: row.title,
+      image_url: row.image_url,
+      is_visible: row.is_visible,
+      sort_order: row.sort_order,
+    }));
+    const e = (input?.events || events).map((row) => ({
+      id: row.id,
+      event_name: row.event_name,
+      time_label: row.time_label,
+      icon: row.icon,
+      is_visible: row.is_visible,
+      sort_order: row.sort_order,
+    }));
+    const m = (input?.entourage || entourageMembers).map((row) => ({
+      id: row.id,
+      name: row.name,
+      role: row.role,
+      group_name: row.group_name,
+      sort_order: row.sort_order,
+      is_visible: row.is_visible,
+    }));
+    return JSON.stringify({
+      selectedWeddingId,
+      couple: c,
+      details: d,
+      sections: s,
+      faqs: f,
+      gallery: g,
+      events: e,
+      entourage: m,
+      pendingDressCodeFiles: Object.keys(pendingDressCodeFiles).sort(),
+      pendingContentFiles: Object.keys(pendingContentFiles).sort(),
+      hasDraftGallery: Boolean(newGalleryDraft.file),
+      newGalleryDraftTitle: newGalleryDraft.title,
+      newGalleryDraftVisible: newGalleryDraft.is_visible,
+    });
+  };
+  const currentSnapshot = useMemo(
+    () => buildSnapshot(),
+    [
+      selectedWeddingId,
+      couple,
+      details,
+      sections,
+      faqs,
+      gallery,
+      events,
+      entourageMembers,
+      pendingDressCodeFiles,
+      pendingContentFiles,
+      newGalleryDraft.file,
+      newGalleryDraft.title,
+      newGalleryDraft.is_visible,
+    ],
+  );
+  const hasUnsavedChanges = Boolean(savedSnapshot) && currentSnapshot !== savedSnapshot;
+  const dirtyFieldLabels = useMemo(() => {
+    if (!savedSnapshot || !hasUnsavedChanges) return [] as string[];
+    try {
+      const saved = JSON.parse(savedSnapshot) as Record<string, unknown>;
+      const dirty: string[] = [];
+      const check = (label: string, a: unknown, b: unknown) => {
+        if (JSON.stringify(a) !== JSON.stringify(b)) dirty.push(label);
+      };
+      check('Couple Info', (saved as any).couple, couple);
+      check('Core Details', (saved as any).details, details);
+      check('Sections', (saved as any).sections, sections.map((row) => ({
+        id: row.id,
+        section_key: row.section_key,
+        is_enabled: row.is_enabled,
+        sort_order: row.sort_order,
+        content_text: row.content_text,
+        animation: row.animation,
+      })));
+      check('Programme', (saved as any).events, events.map((row) => ({
+        id: row.id,
+        event_name: row.event_name,
+        time_label: row.time_label,
+        icon: row.icon,
+        is_visible: row.is_visible,
+        sort_order: row.sort_order,
+      })));
+      check('Entourage', (saved as any).entourage, entourageMembers.map((row) => ({
+        id: row.id,
+        name: row.name,
+        role: row.role,
+        group_name: row.group_name,
+        sort_order: row.sort_order,
+        is_visible: row.is_visible,
+      })));
+      check('FAQs', (saved as any).faqs, faqs.map((row) => ({
+        id: row.id,
+        question: row.question,
+        answer: row.answer,
+        is_visible: row.is_visible,
+        sort_order: row.sort_order,
+      })));
+      check('Gallery Items', (saved as any).gallery, gallery.map((row) => ({
+        id: row.id,
+        title: row.title,
+        image_url: row.image_url,
+        is_visible: row.is_visible,
+        sort_order: row.sort_order,
+      })));
+      if (Object.keys(pendingContentFiles).length > 0) dirty.push('Hero/Venue Draft Uploads');
+      if (Object.keys(pendingDressCodeFiles).length > 0) dirty.push('Dress Code Draft Uploads');
+      if (newGalleryDraft.file) dirty.push('New Gallery Draft');
+      return Array.from(new Set(dirty));
+    } catch {
+      return ['Unsaved changes'];
+    }
+  }, [savedSnapshot, hasUnsavedChanges, couple, details, sections, events, entourageMembers, faqs, gallery, pendingContentFiles, pendingDressCodeFiles, newGalleryDraft.file]);
+  const dirtyLabelSet = useMemo(() => new Set(dirtyFieldLabels), [dirtyFieldLabels]);
+  const hasDirtyLabel = (label: string) => dirtyLabelSet.has(label);
+  const isCoreFieldDirty = (field: keyof CoupleRow | keyof DetailRow) => {
+    if (!savedSnapshot || !hasUnsavedChanges) return false;
+    try {
+      const saved = JSON.parse(savedSnapshot) as any;
+      const savedCouple = saved.couple || {};
+      const savedDetails = saved.details || {};
+      if (field in couple) {
+        return JSON.stringify((savedCouple as any)[field]) !== JSON.stringify((couple as any)[field]);
+      }
+      return JSON.stringify((savedDetails as any)[field]) !== JSON.stringify((details as any)[field]);
+    } catch {
+      return false;
+    }
+  };
+  const isSectionRowDirty = (sectionId: string) => {
+    if (!savedSnapshot || !hasUnsavedChanges) return false;
+    try {
+      const saved = JSON.parse(savedSnapshot) as any;
+      const savedSections = ((saved.sections || []) as Array<any>).find((row) => row.id === sectionId);
+      const current = sections.find((row) => row.id === sectionId);
+      if (!current) return false;
+      return JSON.stringify(savedSections || {}) !== JSON.stringify({
+        id: current.id,
+        section_key: current.section_key,
+        is_enabled: current.is_enabled,
+        sort_order: current.sort_order,
+        content_text: current.content_text,
+        animation: current.animation,
+        animation_duration_ms: current.animation_duration_ms,
+        animation_delay_ms: current.animation_delay_ms,
+      });
+    } catch {
+      return false;
+    }
+  };
+  const isEventFieldDirty = (eventId: string, field: 'event_name' | 'time_label' | 'icon' | 'is_visible') => {
+    if (!savedSnapshot || !hasUnsavedChanges) return false;
+    try {
+      const saved = JSON.parse(savedSnapshot) as any;
+      const savedRow = ((saved.events || []) as Array<any>).find((row) => row.id === eventId);
+      const current = events.find((row) => row.id === eventId);
+      if (!current) return false;
+      return JSON.stringify(savedRow?.[field]) !== JSON.stringify((current as any)[field]);
+    } catch {
+      return false;
+    }
+  };
+  const isEntourageFieldDirty = (id: string, field: 'name' | 'role' | 'group_name' | 'sort_order' | 'is_visible') => {
+    if (!savedSnapshot || !hasUnsavedChanges) return false;
+    try {
+      const saved = JSON.parse(savedSnapshot) as any;
+      const savedRow = ((saved.entourage || []) as Array<any>).find((row) => row.id === id);
+      const current = entourageMembers.find((row) => row.id === id);
+      if (!current) return false;
+      return JSON.stringify(savedRow?.[field]) !== JSON.stringify((current as any)[field]);
+    } catch {
+      return false;
+    }
+  };
+  const isFaqFieldDirty = (id: string, field: 'question' | 'answer' | 'is_visible' | 'sort_order') => {
+    if (!savedSnapshot || !hasUnsavedChanges) return false;
+    try {
+      const saved = JSON.parse(savedSnapshot) as any;
+      const savedRow = ((saved.faqs || []) as Array<any>).find((row) => row.id === id);
+      const current = faqs.find((row) => row.id === id);
+      if (!current) return false;
+      return JSON.stringify(savedRow?.[field]) !== JSON.stringify((current as any)[field]);
+    } catch {
+      return false;
+    }
+  };
+  const isGalleryFieldDirty = (id: string, field: 'title' | 'image_url' | 'is_visible' | 'sort_order') => {
+    if (!savedSnapshot || !hasUnsavedChanges) return false;
+    try {
+      const saved = JSON.parse(savedSnapshot) as any;
+      const savedRow = ((saved.gallery || []) as Array<any>).find((row) => row.id === id);
+      const current = gallery.find((row) => row.id === id);
+      if (!current) return false;
+      return JSON.stringify(savedRow?.[field]) !== JSON.stringify((current as any)[field]);
+    } catch {
+      return false;
+    }
+  };
+
+  const discardUnsavedChanges = () => {
+    if (!savedSnapshot) return;
+    try {
+      const saved = JSON.parse(savedSnapshot) as any;
+      setCouple(saved.couple || DEFAULT_COUPLE);
+      setDetails(saved.details || DEFAULT_DETAILS);
+      setSections((saved.sections || []) as SectionRow[]);
+      setFaqs((saved.faqs || []) as FaqRow[]);
+      setGallery((saved.gallery || []) as GalleryRow[]);
+      setEvents((saved.events || []) as EventRow[]);
+      setEntourageMembers((saved.entourage || []) as EntourageRow[]);
+      setPendingDressCodeFiles({});
+      setPendingContentFiles({});
+      Object.values(dressCodePreviewUrls).forEach((url) => url && URL.revokeObjectURL(url));
+      Object.values(contentPreviewUrls).forEach((url) => url && URL.revokeObjectURL(url));
+      setDressCodePreviewUrls({});
+      setContentPreviewUrls({});
+      if (newGalleryDraft.previewUrl) URL.revokeObjectURL(newGalleryDraft.previewUrl);
+      setNewGalleryDraft({ file: null, previewUrl: '', title: '', is_visible: true });
+    } catch {
+      // no-op fallback
+    }
+  };
+  const confirmDiscardChanges = () => {
+    if (!hasUnsavedChanges) return true;
+    return window.confirm('You have unsaved changes. Leave without saving?');
+  };
   const buildInvitationLink = (domain: string, slug?: string) => {
     const cleanDomain = (domain || '').trim().replace(/\/+$/, '');
     const cleanSlug = (slug || '').trim().replace(/^\/+|\/+$/g, '');
@@ -269,6 +564,17 @@ export default function AdminPage() {
   };
   const managedInSeparateTab = (sectionKey: string) =>
     sectionKey === 'event_details' || sectionKey === 'programme' || sectionKey === 'entourage';
+  const hasDedicatedSectionField = (sectionKey: string) =>
+    sectionKey === 'hero_title' ||
+    sectionKey === 'hero_subtitle' ||
+    sectionKey === 'hero_couple_text' ||
+    sectionKey === 'hero_date';
+  const usesCoreDetailField = (sectionKey: string) =>
+    sectionKey === 'hero_title' || sectionKey === 'hero_subtitle';
+  const usesSectionContentField = (sectionKey: string) =>
+    sectionKey === 'hero_couple_text' || sectionKey === 'hero_date';
+  const isSectionContentEditable = (sectionKey: string) =>
+    !managedInSeparateTab(sectionKey) && !hasDedicatedSectionField(sectionKey);
 
   const toMinutesFromLabel = (label: string): number | null => {
     const value = (label || '').trim().toUpperCase();
@@ -334,6 +640,16 @@ export default function AdminPage() {
   useEffect(() => {
     init();
   }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   useEffect(() => {
     readImageMeta(details.hero_image_url, setHeroMeta);
@@ -419,12 +735,13 @@ export default function AdminPage() {
     setUserAccounts((data || []) as CmsUserRow[]);
   };
 
-  const ensureSections = async (weddingId: string) => {
-    const existing = new Set(sections.map((s) => s.section_key));
+  const ensureSections = async (weddingId: string, existingSections?: Array<Pick<SectionRow, 'section_key'>>) => {
+    const source = existingSections || sections;
+    const existing = new Set(source.map((s) => s.section_key));
     const missing = SECTION_KEYS.filter((item) => !existing.has(item.key));
-    if (!missing.length) return;
+    if (!missing.length) return false;
 
-    await supabase.from('wedding_sections').insert(
+    const { error } = await supabase.from('wedding_sections').insert(
       missing.map((item, idx) => ({
         wedding_id: weddingId,
         section_key: item.key,
@@ -433,8 +750,15 @@ export default function AdminPage() {
         sort_order: (idx + 1) * 10,
         content_text: '',
         animation: 'reveal-fade',
+        animation_duration_ms: 850,
+        animation_delay_ms: 0,
       })),
     );
+    if (error) {
+      notify(`Failed to auto-create missing sections: ${error.message}`, 'error');
+      return false;
+    }
+    return true;
   };
 
   const loadWeddingData = async (weddingId: string) => {
@@ -449,10 +773,9 @@ export default function AdminPage() {
       supabase.from('wedding_entourage').select('*').eq('wedding_id', weddingId).order('sort_order'),
     ]);
 
-    setCouple({ ...DEFAULT_COUPLE, ...(coupleRes.data || {}) });
-    setDetails({ ...DEFAULT_DETAILS, ...(detailsRes.data || {}) });
-    setSections(
-      ((sectionsRes.data || []) as Partial<SectionRow>[]).map((row) => ({
+    const nextCouple = { ...DEFAULT_COUPLE, ...(coupleRes.data || {}) };
+    const nextDetails = { ...DEFAULT_DETAILS, ...(detailsRes.data || {}) };
+    let nextSections = ((sectionsRes.data || []) as Partial<SectionRow>[]).map((row) => ({
         id: row.id || '',
         section_key: row.section_key || '',
         name: row.name || '',
@@ -460,13 +783,73 @@ export default function AdminPage() {
         sort_order: row.sort_order || 0,
         content_text: row.content_text || '',
         animation: normalizeAnimation(row.animation),
-      })),
-    );
-    setFaqs((faqsRes.data || []) as FaqRow[]);
-    setGallery((galleryRes.data || []) as GalleryRow[]);
+        animation_duration_ms: row.animation_duration_ms || 850,
+        animation_delay_ms: row.animation_delay_ms || 0,
+      }));
+    const insertedMissingSections = await ensureSections(weddingId, nextSections);
+    if (insertedMissingSections) {
+      const refreshedSectionsRes = await supabase
+        .from('wedding_sections')
+        .select('*')
+        .eq('wedding_id', weddingId)
+        .order('sort_order');
+      nextSections = ((refreshedSectionsRes.data || []) as Partial<SectionRow>[]).map((row) => ({
+        id: row.id || '',
+        section_key: row.section_key || '',
+        name: row.name || '',
+        is_enabled: Boolean(row.is_enabled),
+        sort_order: row.sort_order || 0,
+        content_text: row.content_text || '',
+        animation: normalizeAnimation(row.animation),
+        animation_duration_ms: row.animation_duration_ms || 850,
+        animation_delay_ms: row.animation_delay_ms || 0,
+      }));
+    }
+    const nextFaqs = (faqsRes.data || []) as FaqRow[];
+    const nextGallery = (galleryRes.data || []) as GalleryRow[];
+    const nextEvents = (eventsRes.data || []) as EventRow[];
+    const nextEntourage = (entourageRes.data || []) as EntourageRow[];
+
+    setCouple(nextCouple);
+    setDetails(nextDetails);
+    setSections(nextSections);
+    setFaqs(nextFaqs);
+    setGallery(nextGallery);
     setRsvps((rsvpsRes.data || []) as RSVPRow[]);
-    setEvents((eventsRes.data || []) as EventRow[]);
-    setEntourageMembers((entourageRes.data || []) as EntourageRow[]);
+    setEvents(nextEvents);
+    setEntourageMembers(nextEntourage);
+    setPendingDressCodeFiles({});
+    setPendingContentFiles({});
+    setDressCodePreviewUrls({});
+    setContentPreviewUrls({});
+    if (newGalleryDraft.previewUrl) URL.revokeObjectURL(newGalleryDraft.previewUrl);
+    setNewGalleryDraft({ file: null, previewUrl: '', title: '', is_visible: true });
+    setSavedSnapshot(
+      JSON.stringify({
+        selectedWeddingId: weddingId,
+        couple: nextCouple,
+        details: nextDetails,
+        sections: nextSections.map((row) => ({
+          id: row.id,
+          section_key: row.section_key,
+          is_enabled: row.is_enabled,
+          sort_order: row.sort_order,
+          content_text: row.content_text,
+          animation: row.animation,
+          animation_duration_ms: row.animation_duration_ms,
+          animation_delay_ms: row.animation_delay_ms,
+        })),
+        faqs: nextFaqs.map((row) => ({ id: row.id, question: row.question, answer: row.answer, is_visible: row.is_visible, sort_order: row.sort_order })),
+        gallery: nextGallery.map((row) => ({ id: row.id, title: row.title, image_url: row.image_url, is_visible: row.is_visible, sort_order: row.sort_order })),
+        events: nextEvents.map((row) => ({ id: row.id, event_name: row.event_name, time_label: row.time_label, icon: row.icon, is_visible: row.is_visible, sort_order: row.sort_order })),
+        entourage: nextEntourage.map((row) => ({ id: row.id, name: row.name, role: row.role, group_name: row.group_name, sort_order: row.sort_order, is_visible: row.is_visible })),
+        pendingDressCodeFiles: [],
+        pendingContentFiles: [],
+        hasDraftGallery: false,
+        newGalleryDraftTitle: '',
+        newGalleryDraftVisible: true,
+      }),
+    );
   };
 
   useEffect(() => {
@@ -475,7 +858,19 @@ export default function AdminPage() {
     }
   }, [selectedWeddingId]);
 
+  useEffect(() => {
+    const syncMissingSections = async () => {
+      if (tab !== 'sections' || !selectedWeddingId) return;
+      const insertedMissingSections = await ensureSections(selectedWeddingId, sections);
+      if (insertedMissingSections) {
+        await loadWeddingData(selectedWeddingId);
+      }
+    };
+    syncMissingSections();
+  }, [tab, selectedWeddingId]);
+
   const handleLogout = async () => {
+    if (!confirmDiscardChanges()) return;
     await supabase.auth.signOut();
     router.push(pathname.startsWith('/users') ? '/users/login' : '/admin/login');
   };
@@ -585,27 +980,54 @@ export default function AdminPage() {
   };
 
   const saveSection = async (section: SectionRow) => {
-    const managedSection = managedInSeparateTab(section.section_key);
-    const contentText = managedSection ? '' : section.content_text || '';
+    const contentText =
+      isSectionContentEditable(section.section_key) || usesSectionContentField(section.section_key)
+        ? section.content_text || ''
+        : '';
     const { error: sectionError } = await supabase
       .from('wedding_sections')
       .update({
         is_enabled: section.is_enabled,
         content_text: contentText,
         animation: normalizeAnimation(section.animation),
+        animation_duration_ms: section.animation_duration_ms || 850,
+        animation_delay_ms: section.animation_delay_ms || 0,
       })
       .eq('id', section.id);
     if (!sectionError) {
-      setSections((prev) =>
-        prev.map((row) => (row.id === section.id ? { ...section, content_text: contentText } : row)),
+      if (
+        (section.section_key === 'hero_title' || section.section_key === 'hero_subtitle') &&
+        selectedWeddingId
+      ) {
+        const { error: heroTextError } = await supabase
+          .from('wedding_details')
+          .upsert({
+            wedding_id: selectedWeddingId,
+            blessing_text: details.blessing_text || '',
+            hero_subtitle: details.hero_subtitle || '',
+          });
+        if (heroTextError) {
+          notify(`Save hero title/subtitle failed: ${heroTextError.message}`, 'error');
+          return;
+        }
+      }
+      const updatedSections = sections.map((row) =>
+        row.id === section.id ? { ...section, content_text: contentText } : row,
       );
+      setSections(updatedSections);
+      // Refresh saved baseline immediately so dirty highlight clears after successful save.
+      setSavedSnapshot(buildSnapshot({ sections: updatedSections }));
       refreshPreview();
       notify(`Section ${section.name} saved.`);
     }
   };
 
   const sectionFallbackFromCore = (sectionKey: string): string => {
-    if (sectionKey === 'hero') return details.blessing_text || details.hero_subtitle || '';
+    if (sectionKey === 'hero') return '';
+    if (sectionKey === 'hero_title') return details.blessing_text || '';
+    if (sectionKey === 'hero_subtitle') return details.hero_subtitle || '';
+    if (sectionKey === 'hero_couple_text') return `${couple.bride_name || ''} & ${couple.groom_name || ''}`.trim();
+    if (sectionKey === 'hero_date') return details.wedding_date_label || '';
     if (sectionKey === 'couple_info') return `${couple.bride_name || ''} & ${couple.groom_name || ''}`.trim();
     if (sectionKey === 'story') return details.invitation_text || '';
     if (sectionKey === 'invitation') return details.invitation_text || '';
@@ -621,7 +1043,12 @@ export default function AdminPage() {
     return '';
   };
 
-  const getEffectiveSectionContent = (section: SectionRow) => section.content_text || sectionFallbackFromCore(section.section_key);
+  const getEffectiveSectionContent = (section: SectionRow) => {
+    if (usesCoreDetailField(section.section_key)) {
+      return sectionFallbackFromCore(section.section_key);
+    }
+    return section.content_text || sectionFallbackFromCore(section.section_key);
+  };
 
   const addFaq = async () => {
     if (!selectedWeddingId || !newFaq.question.trim() || !newFaq.answer.trim()) return;
@@ -667,63 +1094,189 @@ export default function AdminPage() {
     return supabase.storage.from('wedding-assets').getPublicUrl(path).data.publicUrl;
   };
 
-  const uploadContentImage = async (file: File, target: 'hero_image_url' | 'venue_image_url') => {
-    try {
-      if (!selectedWeddingId) return;
-      const publicUrl = await uploadAsset(file, 'content');
-      setDetails((prev) => ({ ...prev, [target]: publicUrl }));
+  const extractBucketPathFromPublicUrl = (publicUrl: string): string | null => {
+    const raw = (publicUrl || '').trim();
+    if (!raw) return null;
+    const marker = '/storage/v1/object/public/wedding-assets/';
+    const idx = raw.indexOf(marker);
+    if (idx === -1) return null;
+    return raw.slice(idx + marker.length);
+  };
 
-      const { error: saveError } = await supabase
-        .from('wedding_details')
-        .upsert({ wedding_id: selectedWeddingId, [target]: publicUrl });
+  const deleteStorageObjectByPublicUrl = async (publicUrl: string) => {
+    const path = extractBucketPathFromPublicUrl(publicUrl);
+    if (!path) return;
+    await supabase.storage.from('wedding-assets').remove([path]);
+  };
 
-      if (saveError) {
-        notify(`Uploaded but failed to save: ${saveError.message}`, 'error');
+  const setContentDraftFile = (
+    file: File,
+    slot: ContentImageSlot,
+    target: 'hero_image_url' | 'venue_image_url',
+  ) => {
+    setPendingContentFiles((prev) => ({ ...prev, [slot]: file }));
+    setContentPreviewUrls((prev) => {
+      const previousUrl = prev[slot];
+      if (previousUrl) URL.revokeObjectURL(previousUrl);
+      return { ...prev, [slot]: URL.createObjectURL(file) };
+    });
+    notify('Image selected. Click Save to upload and apply.');
+  };
+
+  const saveContentImageSlot = async (slot: ContentImageSlot) => {
+    if (!selectedWeddingId) return;
+    const target = slot === 'hero' ? 'hero_image_url' : 'venue_image_url';
+    const previousUrl = details[target];
+    let imageUrl = details[target];
+    const pendingFile = pendingContentFiles[slot];
+
+    if (pendingFile) {
+      try {
+        imageUrl = await uploadAsset(pendingFile, 'content');
+      } catch (e) {
+        notify(`Upload failed: ${(e as Error).message}`, 'error');
         return;
       }
-
-      notify('Image uploaded and saved.');
-      await loadWeddingData(selectedWeddingId);
-      refreshPreview();
-    } catch (e) {
-      notify(`Upload failed: ${(e as Error).message}`, 'error');
     }
-  };
 
-  const saveContentImageUrl = async (target: 'hero_image_url' | 'venue_image_url', value: string) => {
-    if (!selectedWeddingId) return;
-    const normalized = value.trim();
     const { error: saveError } = await supabase
       .from('wedding_details')
-      .upsert({ wedding_id: selectedWeddingId, [target]: normalized });
+      .upsert({ wedding_id: selectedWeddingId, [target]: imageUrl });
+
     if (saveError) {
-      notify(`Image URL save failed: ${saveError.message}`, 'error');
+      notify(`Save ${slot} image failed: ${saveError.message}`, 'error');
       return;
     }
+
+    setPendingContentFiles((prev) => {
+      const next = { ...prev };
+      delete next[slot];
+      return next;
+    });
+    setContentPreviewUrls((prev) => {
+      const next = { ...prev };
+      if (next[slot]) URL.revokeObjectURL(next[slot] as string);
+      delete next[slot];
+      return next;
+    });
+
+    if (pendingFile && previousUrl && previousUrl !== imageUrl) {
+      await deleteStorageObjectByPublicUrl(previousUrl);
+    }
+
     refreshPreview();
-    notify('Image URL saved.');
+    notify(`${slot === 'hero' ? 'Hero' : 'Venue'} image saved.`);
+    await loadWeddingData(selectedWeddingId);
   };
 
-  const uploadGalleryImage = async (file: File) => {
-    if (!selectedWeddingId) return;
+  const stageGalleryImage = (file: File) => {
+    setNewGalleryDraft((prev) => {
+      if (prev.previewUrl) URL.revokeObjectURL(prev.previewUrl);
+      return {
+        file,
+        previewUrl: URL.createObjectURL(file),
+        title: file.name.replace(/\.[^.]+$/, ''),
+        is_visible: true,
+      };
+    });
+    notify('Gallery image selected. Click Save to upload and add.');
+  };
+
+  const saveNewGalleryDraft = async () => {
+    if (!selectedWeddingId || !newGalleryDraft.file) return;
     try {
-      const publicUrl = await uploadAsset(file, 'gallery');
+      const publicUrl = await uploadAsset(newGalleryDraft.file, 'gallery');
       const nextSort = gallery.length ? Math.max(...gallery.map((g) => g.sort_order || 0)) + 10 : 10;
       await supabase.from('wedding_gallery').insert({
         wedding_id: selectedWeddingId,
-        title: file.name,
+        title: newGalleryDraft.title.trim() || newGalleryDraft.file.name.replace(/\.[^.]+$/, ''),
         image_url: publicUrl,
         category: 'main',
-        is_visible: true,
+        is_visible: newGalleryDraft.is_visible,
         sort_order: nextSort,
       });
+      if (newGalleryDraft.previewUrl) URL.revokeObjectURL(newGalleryDraft.previewUrl);
+      setNewGalleryDraft({ file: null, previewUrl: '', title: '', is_visible: true });
       await loadWeddingData(selectedWeddingId);
       refreshPreview();
-      notify('Gallery image uploaded.');
+      notify('Gallery image saved.');
     } catch (e) {
       notify(`Upload failed: ${(e as Error).message}`, 'error');
     }
   };
+
+  const setDressCodeDraftFile = (
+    file: File,
+    slot: DressCodeSlot,
+    target: 'dress_code_image_1' | 'dress_code_image_2' | 'dress_code_image_3',
+  ) => {
+    setPendingDressCodeFiles((prev) => ({ ...prev, [slot]: file }));
+    setDressCodePreviewUrls((prev) => {
+      const previousUrl = prev[slot];
+      if (previousUrl) URL.revokeObjectURL(previousUrl);
+      return { ...prev, [slot]: URL.createObjectURL(file) };
+    });
+    notify('Image selected. Click Save to upload and apply.');
+  };
+
+  const saveDressCodeImageSlot = async (slot: DressCodeSlot) => {
+    if (!selectedWeddingId) return;
+    const imageKey = `dress_code_image_${slot}` as const;
+    const visibleKey = `dress_code_image_${slot}_visible` as const;
+    const previousUrl = details[imageKey];
+    let imageUrl = details[imageKey];
+
+    const pendingFile = pendingDressCodeFiles[slot];
+    if (pendingFile) {
+      try {
+        imageUrl = await uploadAsset(pendingFile, 'content');
+      } catch (e) {
+        notify(`Upload failed: ${(e as Error).message}`, 'error');
+        return;
+      }
+    }
+
+    const payload = {
+      wedding_id: selectedWeddingId,
+      [imageKey]: imageUrl,
+      [visibleKey]: details[visibleKey],
+    };
+
+    const { error: saveError } = await supabase.from('wedding_details').upsert(payload);
+    if (saveError) {
+      notify(`Save dress code image ${slot} failed: ${saveError.message}`, 'error');
+      return;
+    }
+    setPendingDressCodeFiles((prev) => {
+      const next = { ...prev };
+      delete next[slot];
+      return next;
+    });
+    setDressCodePreviewUrls((prev) => {
+      const next = { ...prev };
+      if (next[slot]) URL.revokeObjectURL(next[slot] as string);
+      delete next[slot];
+      return next;
+    });
+    if (pendingFile && previousUrl && previousUrl !== imageUrl) {
+      await deleteStorageObjectByPublicUrl(previousUrl);
+    }
+    refreshPreview();
+    notify(`Dress code image ${slot} saved.`);
+    await loadWeddingData(selectedWeddingId);
+  };
+
+  useEffect(() => {
+    return () => {
+      Object.values(dressCodePreviewUrls).forEach((url) => {
+        if (url) URL.revokeObjectURL(url);
+      });
+      Object.values(contentPreviewUrls).forEach((url) => {
+        if (url) URL.revokeObjectURL(url);
+      });
+      if (newGalleryDraft.previewUrl) URL.revokeObjectURL(newGalleryDraft.previewUrl);
+    };
+  }, [dressCodePreviewUrls, contentPreviewUrls, newGalleryDraft.previewUrl]);
 
   const saveGalleryItem = async (item: GalleryRow) => {
     await supabase
@@ -741,10 +1294,72 @@ export default function AdminPage() {
   };
 
   const deleteGalleryItem = async (id: string) => {
+    const item = gallery.find((g) => g.id === id);
     await supabase.from('wedding_gallery').delete().eq('id', id);
+    if (item?.image_url) {
+      await deleteStorageObjectByPublicUrl(item.image_url);
+    }
     if (selectedWeddingId) await loadWeddingData(selectedWeddingId);
     refreshPreview();
     notify('Gallery image deleted.');
+  };
+
+  const clearContentImageSlot = async (slot: ContentImageSlot) => {
+    if (!selectedWeddingId) return;
+    const target = slot === 'hero' ? 'hero_image_url' : 'venue_image_url';
+    const previousUrl = details[target];
+    const { error: saveError } = await supabase.from('wedding_details').upsert({ wedding_id: selectedWeddingId, [target]: '' });
+    if (saveError) {
+      notify(`Delete ${slot} image failed: ${saveError.message}`, 'error');
+      return;
+    }
+    if (previousUrl) {
+      await deleteStorageObjectByPublicUrl(previousUrl);
+    }
+    setPendingContentFiles((prev) => {
+      const next = { ...prev };
+      delete next[slot];
+      return next;
+    });
+    setContentPreviewUrls((prev) => {
+      const next = { ...prev };
+      if (next[slot]) URL.revokeObjectURL(next[slot] as string);
+      delete next[slot];
+      return next;
+    });
+    await loadWeddingData(selectedWeddingId);
+    refreshPreview();
+    notify(`${slot === 'hero' ? 'Hero' : 'Venue'} image deleted.`);
+  };
+
+  const clearDressCodeImageSlot = async (slot: DressCodeSlot) => {
+    if (!selectedWeddingId) return;
+    const imageKey = `dress_code_image_${slot}` as const;
+    const previousUrl = details[imageKey];
+    const { error: saveError } = await supabase
+      .from('wedding_details')
+      .upsert({ wedding_id: selectedWeddingId, [imageKey]: '' });
+    if (saveError) {
+      notify(`Delete dress code image ${slot} failed: ${saveError.message}`, 'error');
+      return;
+    }
+    if (previousUrl) {
+      await deleteStorageObjectByPublicUrl(previousUrl);
+    }
+    setPendingDressCodeFiles((prev) => {
+      const next = { ...prev };
+      delete next[slot];
+      return next;
+    });
+    setDressCodePreviewUrls((prev) => {
+      const next = { ...prev };
+      if (next[slot]) URL.revokeObjectURL(next[slot] as string);
+      delete next[slot];
+      return next;
+    });
+    await loadWeddingData(selectedWeddingId);
+    refreshPreview();
+    notify(`Dress code image ${slot} deleted.`);
   };
 
   const addEvent = async () => {
@@ -754,9 +1369,9 @@ export default function AdminPage() {
     const { error: addError } = await supabase.from('wedding_events').insert({
       wedding_id: selectedWeddingId,
       event_name: newEvent.event_name.trim(),
-      date_label: newEvent.date_label.trim(),
+      date_label: '',
       time_label: newEvent.time_label.trim(),
-      location_label: newEvent.location_label.trim(),
+      location_label: '',
       icon: newEvent.icon,
       category: 'programme',
       sort_order: derivedSort,
@@ -766,38 +1381,32 @@ export default function AdminPage() {
       notify(`Add event failed: ${addError.message}`, 'error');
       return;
     }
-    setNewEvent({ event_name: '', date_label: '', time_label: '', location_label: '', icon: 'heart' });
+    setNewEvent({ event_name: '', time_label: '', icon: 'heart' });
     await loadWeddingData(selectedWeddingId);
     refreshPreview();
     notify('Event added.');
   };
 
-  const saveAllEvents = async () => {
-    if (!selectedWeddingId) return;
-    const results = await Promise.all(
-      events.map((event) =>
-        supabase
-          .from('wedding_events')
-          .update({
-            event_name: event.event_name,
-            date_label: event.date_label,
-            time_label: event.time_label,
-            location_label: event.location_label,
-            icon: event.icon,
-            category: 'programme',
-            sort_order: toMinutesFromLabel(event.time_label) ?? event.sort_order,
-            is_visible: event.is_visible,
-          })
-          .eq('id', event.id),
-      ),
-    );
-    const failed = results.find((res) => res.error);
-    if (failed?.error) {
-      notify(`Save events failed: ${failed.error.message}`, 'error');
+  const saveEvent = async (event: EventRow) => {
+    const { error } = await supabase
+      .from('wedding_events')
+      .update({
+        event_name: event.event_name,
+        date_label: '',
+        time_label: event.time_label,
+        location_label: '',
+        icon: event.icon,
+        category: 'programme',
+        sort_order: toMinutesFromLabel(event.time_label) ?? event.sort_order,
+        is_visible: event.is_visible,
+      })
+      .eq('id', event.id);
+    if (error) {
+      notify(`Save event failed: ${error.message}`, 'error');
       return;
     }
     refreshPreview();
-    notify('All events saved.');
+    notify('Programme item saved.');
     await loadWeddingData(selectedWeddingId);
   };
 
@@ -828,28 +1437,28 @@ export default function AdminPage() {
     notify('Entourage member added.');
   };
 
-  const saveAllEntourage = async () => {
-    if (!selectedWeddingId) return;
-    const memberResults = await Promise.all(
-      entourageMembers.map((member) =>
-        supabase
-          .from('wedding_entourage')
-          .update({
-            name: member.name,
-            role: member.role,
-            group_name: member.group_name,
-            sort_order: member.sort_order,
-            is_visible: member.is_visible,
-          })
-          .eq('id', member.id),
-      ),
-    );
-    const memberFailed = memberResults.find((res) => res.error);
-    if (memberFailed?.error) {
-      notify(`Save entourage failed: ${memberFailed.error.message}`, 'error');
+  const saveEntourageMember = async (member: EntourageRow) => {
+    const { error } = await supabase
+      .from('wedding_entourage')
+      .update({
+        name: member.name,
+        role: member.role,
+        group_name: member.group_name,
+        sort_order: member.sort_order,
+        is_visible: member.is_visible,
+      })
+      .eq('id', member.id);
+    if (error) {
+      notify(`Save entourage failed: ${error.message}`, 'error');
       return;
     }
+    refreshPreview();
+    notify('Entourage item saved.');
+    await loadWeddingData(selectedWeddingId);
+  };
 
+  const saveEntourageVerse = async () => {
+    if (!selectedWeddingId) return;
     const { error: detailError } = await supabase
       .from('wedding_details')
       .upsert({
@@ -861,9 +1470,8 @@ export default function AdminPage() {
       notify(`Save entourage verse failed: ${detailError.message}`, 'error');
       return;
     }
-
     refreshPreview();
-    notify('All entourage changes saved.');
+    notify('Entourage verse saved.');
     await loadWeddingData(selectedWeddingId);
   };
 
@@ -931,10 +1539,10 @@ export default function AdminPage() {
       <header className="px-6 py-6 border-b" style={{ borderColor: '#E8D5B7', background: '#fff' }}>
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="font-serif text-3xl" style={{ color: '#2C1810' }}>Wedding CMS Admin</h1>
-            <p className="font-sans-body text-sm mt-1" style={{ color: '#8B7355' }}>Multi-wedding reusable invitation platform</p>
+            <h1 className="font-serif text-3xl" style={{ color: '#2C1810' }}>J7 Wedding CMS - {accessScope.role === 'admin' ? 'Administrator' : `User `} Panel</h1>
+          
             <p className="font-sans-body text-xs mt-1" style={{ color: '#8B7355' }}>
-              Access: {accessScope.role === 'admin' ? 'Administrator' : `Editor (${accessScope.username})`}
+              Access: {accessScope.role === 'admin' ? 'Administrator' : `users (${accessScope.username})`}
             </p>
           </div>
           <div className="flex gap-2">
@@ -954,7 +1562,14 @@ export default function AdminPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <select
               value={selectedWeddingId}
-              onChange={(e) => setSelectedWeddingId(e.target.value)}
+              onChange={(e) => {
+                if (hasUnsavedChanges) {
+                  const ok = confirmDiscardChanges();
+                  if (!ok) return;
+                  discardUnsavedChanges();
+                }
+                setSelectedWeddingId(e.target.value);
+              }}
               disabled={accessScope.role === 'editor'}
               className="px-3 py-2 rounded-lg"
               style={{ border: '1.5px solid #E8D5B7' }}
@@ -1013,7 +1628,24 @@ export default function AdminPage() {
 
         <div className="flex flex-wrap gap-2">
           {(['preview', 'core', 'sections', 'events', 'entourage', 'faq', 'gallery', 'rsvps', ...(accessScope.role === 'admin' ? (['users'] as const) : [])] as const).map((item) => (
-            <button key={item} onClick={() => setTab(item)} className="px-4 py-2 rounded-lg text-sm capitalize" style={{ background: tab === item ? '#C9A96E' : '#fff', color: tab === item ? '#fff' : '#6B5744', border: '1.5px solid #E8D5B7' }}>
+            <button
+              key={item}
+              onClick={() => {
+                if (item === tab) return;
+                if (hasUnsavedChanges) {
+                  const ok = confirmDiscardChanges();
+                  if (!ok) return;
+                  discardUnsavedChanges();
+                }
+                setTab(item);
+              }}
+              className="px-4 py-2 rounded-lg text-sm capitalize"
+              style={{
+                background: tab === item ? '#C9A96E' : '#fff',
+                color: tab === item ? '#fff' : '#6B5744',
+                border: '1.5px solid #E8D5B7',
+              }}
+            >
               {item}
             </button>
           ))}
@@ -1075,11 +1707,11 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Bride Name</label>
-                <input value={couple.bride_name} onChange={(e) => setCouple((p) => ({ ...p, bride_name: e.target.value }))} placeholder="Bride Name" className="w-full px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
+                <input value={couple.bride_name} onChange={(e) => setCouple((p) => ({ ...p, bride_name: e.target.value }))} placeholder="Bride Name" className="w-full px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isCoreFieldDirty('bride_name') ? '#DC2626' : '#E8D5B7'}` }} />
               </div>
               <div>
                 <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Groom Name</label>
-                <input value={couple.groom_name} onChange={(e) => setCouple((p) => ({ ...p, groom_name: e.target.value }))} placeholder="Groom Name" className="w-full px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
+                <input value={couple.groom_name} onChange={(e) => setCouple((p) => ({ ...p, groom_name: e.target.value }))} placeholder="Groom Name" className="w-full px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isCoreFieldDirty('groom_name') ? '#DC2626' : '#E8D5B7'}` }} />
               </div>
               <div>
                 <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Wedding Date</label>
@@ -1095,7 +1727,7 @@ export default function AdminPage() {
                     }))
                   }
                   className="w-full px-3 py-2 rounded-lg"
-                  style={{ border: '1.5px solid #E8D5B7' }}
+                  style={{ border: `1.5px solid ${isCoreFieldDirty('wedding_date_value') ? '#DC2626' : '#E8D5B7'}` }}
                 />
               </div>
               <div>
@@ -1111,12 +1743,12 @@ export default function AdminPage() {
                     }))
                   }
                   className="w-full px-3 py-2 rounded-lg"
-                  style={{ border: '1.5px solid #E8D5B7' }}
+                  style={{ border: `1.5px solid ${isCoreFieldDirty('ceremony_time_value') ? '#DC2626' : '#E8D5B7'}` }}
                 />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Venue Name</label>
-                <input value={details.venue_title} onChange={(e) => setDetails((p) => ({ ...p, venue_title: e.target.value }))} placeholder="Venue" className="w-full px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
+                <input value={details.venue_title} onChange={(e) => setDetails((p) => ({ ...p, venue_title: e.target.value }))} placeholder="Venue" className="w-full px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isCoreFieldDirty('venue_title') ? '#DC2626' : '#E8D5B7'}` }} />
               </div>
               <div>
                 <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Venue Address Line 1</label>
@@ -1125,7 +1757,7 @@ export default function AdminPage() {
                   onChange={(e) => setDetails((p) => ({ ...p, venue_address_line1: e.target.value }))}
                   placeholder="347 Diego Cera Avenue, Pulang Lupa"
                   className="w-full px-3 py-2 rounded-lg"
-                  style={{ border: '1.5px solid #E8D5B7' }}
+                  style={{ border: `1.5px solid ${isCoreFieldDirty('venue_address_line1') ? '#DC2626' : '#E8D5B7'}` }}
                 />
               </div>
               <div>
@@ -1135,12 +1767,12 @@ export default function AdminPage() {
                   onChange={(e) => setDetails((p) => ({ ...p, venue_address_line2: e.target.value }))}
                   placeholder="Las Pinas City, Philippines"
                   className="w-full px-3 py-2 rounded-lg"
-                  style={{ border: '1.5px solid #E8D5B7' }}
+                  style={{ border: `1.5px solid ${isCoreFieldDirty('venue_address_line2') ? '#DC2626' : '#E8D5B7'}` }}
                 />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Google Map Link</label>
-                <input value={details.map_link} onChange={(e) => setDetails((p) => ({ ...p, map_link: e.target.value }))} placeholder="Map Link" className="w-full px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
+                <input value={details.map_link} onChange={(e) => setDetails((p) => ({ ...p, map_link: e.target.value }))} placeholder="Map Link" className="w-full px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isCoreFieldDirty('map_link') ? '#DC2626' : '#E8D5B7'}` }} />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Domain</label>
@@ -1156,11 +1788,11 @@ export default function AdminPage() {
                   placeholder="https://project-jcf0d.vercel.app"
                   readOnly={accessScope.role !== 'admin'}
                   className="w-full px-3 py-2 rounded-lg"
-                  style={{
-                    border: '1.5px solid #E8D5B7',
-                    background: accessScope.role === 'admin' ? '#fff' : '#FFF8EE',
-                    color: accessScope.role === 'admin' ? '#2C1810' : '#8B7355',
-                  }}
+                    style={{
+                      border: `1.5px solid ${isCoreFieldDirty('invitation_link') ? '#DC2626' : '#E8D5B7'}`,
+                      background: accessScope.role === 'admin' ? '#fff' : '#FFF8EE',
+                      color: accessScope.role === 'admin' ? '#2C1810' : '#8B7355',
+                    }}
                 />
 
                 <label className="block text-xs mt-3 mb-1" style={{ color: '#6B5744' }}>Invitation Link</label>
@@ -1197,62 +1829,15 @@ export default function AdminPage() {
               </div>
               <div>
                 <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Mark Calendar: Day Label</label>
-                <input value={details.event_day_label} onChange={(e) => setDetails((p) => ({ ...p, event_day_label: e.target.value }))} placeholder="Saturday" className="w-full px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
+                <input value={details.event_day_label} onChange={(e) => setDetails((p) => ({ ...p, event_day_label: e.target.value }))} placeholder="Saturday" className="w-full px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isCoreFieldDirty('event_day_label') ? '#DC2626' : '#E8D5B7'}` }} />
               </div>
               <div>
                 <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Mark Calendar: Time Note</label>
-                <input value={details.event_time_note} onChange={(e) => setDetails((p) => ({ ...p, event_time_note: e.target.value }))} placeholder="Reception to follow" className="w-full px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
+                <input value={details.event_time_note} onChange={(e) => setDetails((p) => ({ ...p, event_time_note: e.target.value }))} placeholder="Reception to follow" className="w-full px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isCoreFieldDirty('event_time_note') ? '#DC2626' : '#E8D5B7'}` }} />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Mark Calendar: Venue Location</label>
-                <input value={details.event_location_label} onChange={(e) => setDetails((p) => ({ ...p, event_location_label: e.target.value }))} placeholder="Las Piñas City, Philippines" className="w-full px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs mb-1">Hero Image URL</label>
-                <input
-                  value={details.hero_image_url}
-                  onChange={(e) => setDetails((p) => ({ ...p, hero_image_url: e.target.value }))}
-                  onBlur={(e) => saveContentImageUrl('hero_image_url', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg"
-                  style={{ border: '1.5px solid #E8D5B7' }}
-                />
-                <input type="file" accept="image/*" className="mt-2" onChange={(e) => e.target.files?.[0] && uploadContentImage(e.target.files[0], 'hero_image_url')} />
-                <p className="text-xs mt-1" style={{ color: '#8B7355' }}>
-                  Recommended hero size: 1920 x 1080 (16:9).
-                  {heroMeta ? ` Current image: ${heroMeta.width} x ${heroMeta.height}.` : ''}
-                </p>
-                <div className="mt-2 rounded-lg overflow-hidden" style={{ border: '1px solid #E8D5B7', background: '#fff' }}>
-                  {details.hero_image_url ? (
-                    <img src={details.hero_image_url} alt="Hero preview" className="w-full h-40 object-contain" style={{ background: '#F7F0E4' }} />
-                  ) : (
-                    <p className="text-xs px-3 py-6" style={{ color: '#8B7355' }}>No hero image preview yet.</p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs mb-1">Venue Image URL</label>
-                <input
-                  value={details.venue_image_url}
-                  onChange={(e) => setDetails((p) => ({ ...p, venue_image_url: e.target.value }))}
-                  onBlur={(e) => saveContentImageUrl('venue_image_url', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg"
-                  style={{ border: '1.5px solid #E8D5B7' }}
-                />
-                <input type="file" accept="image/*" className="mt-2" onChange={(e) => e.target.files?.[0] && uploadContentImage(e.target.files[0], 'venue_image_url')} />
-                <p className="text-xs mt-1" style={{ color: '#8B7355' }}>
-                  Recommended venue size: 1600 x 900 (16:9).
-                  {venueMeta ? ` Current image: ${venueMeta.width} x ${venueMeta.height}.` : ''}
-                </p>
-                <div className="mt-2 rounded-lg overflow-hidden" style={{ border: '1px solid #E8D5B7', background: '#fff' }}>
-                  {details.venue_image_url ? (
-                    <img src={details.venue_image_url} alt="Venue preview" className="w-full h-40 object-contain" style={{ background: '#F7F0E4' }} />
-                  ) : (
-                    <p className="text-xs px-3 py-6" style={{ color: '#8B7355' }}>No venue image preview yet.</p>
-                  )}
-                </div>
+                <input value={details.event_location_label} onChange={(e) => setDetails((p) => ({ ...p, event_location_label: e.target.value }))} placeholder="Las Piñas City, Philippines" className="w-full px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isCoreFieldDirty('event_location_label') ? '#DC2626' : '#E8D5B7'}` }} />
               </div>
             </div>
 
@@ -1265,8 +1850,16 @@ export default function AdminPage() {
         {tab === 'sections' && (
           <section className="p-5 rounded-xl space-y-3" style={{ background: '#fff', border: '1px solid #E8D5B7' }}>
             <h2 className="font-serif text-xl" style={{ color: '#2C1810' }}>Section Toggles</h2>
-            {sections.map((section) => (
-              <div key={section.id} className="p-3 rounded-lg space-y-3" style={{ border: '1px solid #E8D5B7' }}>
+            {[...sections]
+              .filter((section) => section.section_key !== 'hero')
+              .sort((a, b) => {
+                const ai = SECTION_DISPLAY_ORDER[a.section_key] ?? 999;
+                const bi = SECTION_DISPLAY_ORDER[b.section_key] ?? 999;
+                if (ai !== bi) return ai - bi;
+                return (a.sort_order || 0) - (b.sort_order || 0);
+              })
+              .map((section) => (
+              <div key={section.id} className="p-3 rounded-lg space-y-3" style={{ border: `1px solid ${isSectionRowDirty(section.id) ? '#DC2626' : '#E8D5B7'}` }}>
                 <div className="flex items-center justify-between">
                   <div>
                   <p className="font-serif" style={{ color: '#2C1810' }}>{section.name}</p>
@@ -1287,7 +1880,7 @@ export default function AdminPage() {
 
                 {section.is_enabled && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {!managedInSeparateTab(section.section_key) && (
+                    {isSectionContentEditable(section.section_key) && (
                       <div className="md:col-span-2">
                         <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>
                           Section Content (shown on this section in frontend)
@@ -1305,40 +1898,206 @@ export default function AdminPage() {
                         />
                       </div>
                     )}
-                    {managedInSeparateTab(section.section_key) && (
+                    {section.section_key === 'hero_title' && (
+                      <div className="md:col-span-2">
+                        <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>
+                          Hero Title
+                        </label>
+                        <input
+                          value={details.blessing_text}
+                          onChange={(e) => setDetails((prev) => ({ ...prev, blessing_text: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-lg"
+                          style={{ border: '1.5px solid #E8D5B7' }}
+                        />
+                      </div>
+                    )}
+                    {section.section_key === 'hero_subtitle' && (
+                      <div className="md:col-span-2">
+                        <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>
+                          Hero Subtitle
+                        </label>
+                        <input
+                          value={details.hero_subtitle}
+                          onChange={(e) => setDetails((prev) => ({ ...prev, hero_subtitle: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-lg"
+                          style={{ border: '1.5px solid #E8D5B7' }}
+                        />
+                      </div>
+                    )}
+                    {section.section_key === 'hero_couple_text' && (
+                      <div className="md:col-span-2">
+                        <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>
+                          Hero Couple Text
+                        </label>
+                        <input
+                          value={getEffectiveSectionContent(section)}
+                          onChange={(e) =>
+                            setSections((prev) =>
+                              prev.map((row) => (row.id === section.id ? { ...row, content_text: e.target.value } : row)),
+                            )
+                          }
+                          className="w-full px-3 py-2 rounded-lg"
+                          style={{ border: '1.5px solid #E8D5B7' }}
+                        />
+                      </div>
+                    )}
+                    {section.section_key === 'hero_date' && (
+                      <div className="md:col-span-2">
+                        <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>
+                          Hero Date Text
+                        </label>
+                        <input
+                          value={getEffectiveSectionContent(section)}
+                          onChange={(e) =>
+                            setSections((prev) =>
+                              prev.map((row) => (row.id === section.id ? { ...row, content_text: e.target.value } : row)),
+                            )
+                          }
+                          className="w-full px-3 py-2 rounded-lg"
+                          style={{ border: '1.5px solid #E8D5B7' }}
+                        />
+                      </div>
+                    )}
+                    {managedInSeparateTab(section.section_key) && section.section_key !== 'hero' && (
                       <p className="md:col-span-2 text-xs" style={{ color: '#8B7355' }}>
-                        Content for this section is managed in the {section.section_key === 'entourage' ? 'entourage' : 'events'} tab.
+                        {`Content for this section is managed in the ${section.section_key === 'entourage' ? 'entourage' : 'events'} tab.`}
                       </p>
                     )}
-                    <div>
-                      <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Section Animation</label>
-                      <select
-                        value={normalizeAnimation(section.animation)}
-                        onChange={(e) =>
-                          setSections((prev) =>
-                            prev.map((row) => (row.id === section.id ? { ...row, animation: e.target.value } : row)),
-                          )
-                        }
-                        className="w-full px-3 py-2 rounded-lg"
-                        style={{ border: '1.5px solid #E8D5B7' }}
-                      >
-                        {ANIMATION_OPTIONS.map((anim) => (
-                          <option key={anim} value={anim}>
-                            {anim}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    {!managedInSeparateTab(section.section_key) && (
+                    {accessScope.role === 'admin' && (
+                      <>
+                        <div>
+                          <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Section Animation</label>
+                          <select
+                            value={normalizeAnimation(section.animation)}
+                            onChange={(e) =>
+                              setSections((prev) =>
+                                prev.map((row) => (row.id === section.id ? { ...row, animation: e.target.value } : row)),
+                              )
+                            }
+                            className="w-full px-3 py-2 rounded-lg"
+                            style={{ border: '1.5px solid #E8D5B7' }}
+                          >
+                            {ANIMATION_OPTIONS.map((anim) => (
+                              <option key={anim} value={anim}>
+                                {anim}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Animation Duration (ms)</label>
+                          <input
+                            type="number"
+                            min={100}
+                            max={4000}
+                            value={sectionTimingDrafts[section.id]?.duration ?? String(section.animation_duration_ms)}
+                            onChange={(e) =>
+                              setSectionTimingDrafts((prev) => ({
+                                ...prev,
+                                [section.id]: { ...(prev[section.id] || {}), duration: e.target.value },
+                              }))
+                            }
+                            onBlur={(e) => {
+                              const parsed = Number(e.target.value);
+                              const nextValue = Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 1;
+                              setSections((prev) =>
+                                prev.map((row) =>
+                                  row.id === section.id ? { ...row, animation_duration_ms: nextValue } : row,
+                                ),
+                              );
+                              setSectionTimingDrafts((prev) => ({
+                                ...prev,
+                                [section.id]: { ...(prev[section.id] || {}), duration: String(nextValue) },
+                              }));
+                            }}
+                            className="w-full px-3 py-2 rounded-lg"
+                            style={{ border: '1.5px solid #E8D5B7' }}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Animation Delay / Order (ms)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={5000}
+                            value={sectionTimingDrafts[section.id]?.delay ?? String(section.animation_delay_ms)}
+                            onChange={(e) =>
+                              setSectionTimingDrafts((prev) => ({
+                                ...prev,
+                                [section.id]: { ...(prev[section.id] || {}), delay: e.target.value },
+                              }))
+                            }
+                            onBlur={(e) => {
+                              const parsed = Number(e.target.value);
+                              const nextValue = Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : 1;
+                              setSections((prev) =>
+                                prev.map((row) =>
+                                  row.id === section.id ? { ...row, animation_delay_ms: nextValue } : row,
+                                ),
+                              );
+                              setSectionTimingDrafts((prev) => ({
+                                ...prev,
+                                [section.id]: { ...(prev[section.id] || {}), delay: String(nextValue) },
+                              }));
+                            }}
+                            className="w-full px-3 py-2 rounded-lg"
+                            style={{ border: '1.5px solid #E8D5B7' }}
+                          />
+                        </div>
+                      </>
+                    )}
+                    {accessScope.role === 'admin' && (!managedInSeparateTab(section.section_key) || hasDedicatedSectionField(section.section_key)) && (
                       <div className="md:col-span-2">
                         <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Animation Preview</label>
+                        {(() => {
+                          const previewText = getEffectiveSectionContent(section) || `${section.name} preview text will appear like this on the frontend.`;
+                          const isLetterFall = normalizeAnimation(section.animation) === 'reveal-fall-letters';
+                          if (isLetterFall) {
+                            return (
+                              <div
+                                key={`${section.id}-${normalizeAnimation(section.animation)}-${previewText}`}
+                                className="rounded-lg px-4 py-3"
+                                style={{
+                                  border: '1px dashed #E8D5B7',
+                                  background: '#FFFDF9',
+                                  color: '#6B5744',
+                                }}
+                              >
+                                {Array.from(previewText).map((char, idx) => (
+                                  char === ' ' ? (
+                                    <span key={`${section.id}-fall-space-${idx}`}> </span>
+                                  ) : (
+                                    <span
+                                      key={`${section.id}-fall-${idx}`}
+                                      className="fall-letter"
+                                      style={{
+                                        animationDuration: `${Math.max(220, section.animation_duration_ms || 850)}ms`,
+                                        animationDelay: `${Math.max(0, section.animation_delay_ms || 0) + idx * 35}ms`,
+                                      }}
+                                    >
+                                      {char}
+                                    </span>
+                                  )
+                                ))}
+                              </div>
+                            );
+                          }
+                          return (
                         <div
-                          key={`${section.id}-${normalizeAnimation(section.animation)}-${getEffectiveSectionContent(section)}`}
+                          key={`${section.id}-${normalizeAnimation(section.animation)}-${previewText}`}
                           className={`${normalizeAnimation(section.animation)} rounded-lg px-4 py-3`}
-                          style={{ border: '1px dashed #E8D5B7', background: '#FFFDF9', color: '#6B5744' }}
+                          style={{
+                            border: '1px dashed #E8D5B7',
+                            background: '#FFFDF9',
+                            color: '#6B5744',
+                            animationDuration: `${Math.max(100, section.animation_duration_ms || 850)}ms`,
+                            animationDelay: `${Math.max(0, section.animation_delay_ms || 0)}ms`,
+                          }}
                         >
-                          {getEffectiveSectionContent(section) || `${section.name} preview text will appear like this on the frontend.`}
+                          {previewText}
                         </div>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
@@ -1362,7 +2121,6 @@ export default function AdminPage() {
             <h2 className="font-serif text-xl" style={{ color: '#2C1810' }}>Programme</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <input value={newEvent.event_name} onChange={(e) => setNewEvent((p) => ({ ...p, event_name: e.target.value }))} placeholder="Event name" className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
-              <input value={newEvent.date_label} onChange={(e) => setNewEvent((p) => ({ ...p, date_label: e.target.value }))} placeholder="Date label" className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
               <input
                 type="time"
                 value={toTimeInputValue(newEvent.time_label)}
@@ -1370,7 +2128,6 @@ export default function AdminPage() {
                 className="px-3 py-2 rounded-lg"
                 style={{ border: '1.5px solid #E8D5B7' }}
               />
-              <input value={newEvent.location_label} onChange={(e) => setNewEvent((p) => ({ ...p, location_label: e.target.value }))} placeholder="Location label" className="px-3 py-2 rounded-lg md:col-span-2" style={{ border: '1.5px solid #E8D5B7' }} />
               <select value={newEvent.icon} onChange={(e) => setNewEvent((p) => ({ ...p, icon: e.target.value }))} className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }}>
                 {EVENT_ICON_OPTIONS.map((icon) => <option key={icon} value={icon}>{icon}</option>)}
               </select>
@@ -1384,8 +2141,7 @@ export default function AdminPage() {
             {events.map((event) => (
               <div key={event.id} className="p-3 rounded-lg space-y-2" style={{ border: '1px solid #E8D5B7' }}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  <input value={event.event_name} onChange={(e) => setEvents((prev) => prev.map((item) => (item.id === event.id ? { ...item, event_name: e.target.value } : item)))} className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
-                  <input value={event.date_label} onChange={(e) => setEvents((prev) => prev.map((item) => (item.id === event.id ? { ...item, date_label: e.target.value } : item)))} className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
+                  <input value={event.event_name} onChange={(e) => setEvents((prev) => prev.map((item) => (item.id === event.id ? { ...item, event_name: e.target.value } : item)))} className="px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isEventFieldDirty(event.id, 'event_name') ? '#DC2626' : '#E8D5B7'}` }} />
                   <input
                     type="time"
                     value={toTimeInputValue(event.time_label)}
@@ -1395,26 +2151,19 @@ export default function AdminPage() {
                       )
                     }
                     className="px-3 py-2 rounded-lg"
-                    style={{ border: '1.5px solid #E8D5B7' }}
+                    style={{ border: `1.5px solid ${isEventFieldDirty(event.id, 'time_label') ? '#DC2626' : '#E8D5B7'}` }}
                   />
-                  <input value={event.location_label} onChange={(e) => setEvents((prev) => prev.map((item) => (item.id === event.id ? { ...item, location_label: e.target.value } : item)))} className="px-3 py-2 rounded-lg md:col-span-2" style={{ border: '1.5px solid #E8D5B7' }} />
-                  <select value={event.icon} onChange={(e) => setEvents((prev) => prev.map((item) => (item.id === event.id ? { ...item, icon: e.target.value } : item)))} className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }}>
+                  <select value={event.icon} onChange={(e) => setEvents((prev) => prev.map((item) => (item.id === event.id ? { ...item, icon: e.target.value } : item)))} className="px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isEventFieldDirty(event.id, 'icon') ? '#DC2626' : '#E8D5B7'}` }}>
                     {EVENT_ICON_OPTIONS.map((icon) => <option key={icon} value={icon}>{icon}</option>)}
                   </select>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-xs"><input type="checkbox" checked={event.is_visible} onChange={(e) => setEvents((prev) => prev.map((item) => (item.id === event.id ? { ...item, is_visible: e.target.checked } : item)))} /> Visible</label>
+                  <label className="text-xs" style={{ color: isEventFieldDirty(event.id, 'is_visible') ? '#B91C1C' : undefined }}><input type="checkbox" checked={event.is_visible} onChange={(e) => setEvents((prev) => prev.map((item) => (item.id === event.id ? { ...item, is_visible: e.target.checked } : item)))} /> Visible</label>
+                  <button onClick={() => saveEvent(event)} className="px-3 py-1.5 rounded text-xs" style={{ background: '#C9A96E', color: '#fff' }}>Save</button>
                   <button onClick={() => deleteEvent(event.id)} className="px-3 py-1.5 rounded text-xs" style={{ background: '#FEE2E2', color: '#B91C1C' }}>Delete</button>
                 </div>
               </div>
             ))}
-            {events.length > 0 && (
-              <div className="pt-1">
-                <button onClick={saveAllEvents} className="px-4 py-2 rounded-lg text-sm inline-flex items-center gap-2" style={{ background: '#C9A96E', color: '#fff' }}>
-                  <Save className="w-4 h-4" /> Save All Programme Items
-                </button>
-              </div>
-            )}
           </section>
         )}
 
@@ -1434,7 +2183,7 @@ export default function AdminPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
               <input value={newEntourage.name} onChange={(e) => setNewEntourage((p) => ({ ...p, name: e.target.value }))} placeholder="Name" className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
-              <input value={newEntourage.role} onChange={(e) => setNewEntourage((p) => ({ ...p, role: e.target.value }))} placeholder="Role (e.g. Best Man)" className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
+              
               <select value={newEntourage.group_name} onChange={(e) => setNewEntourage((p) => ({ ...p, group_name: e.target.value }))} className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }}>
                 {ENTOURAGE_GROUP_OPTIONS.map((group) => <option key={group} value={group}>{group}</option>)}
               </select>
@@ -1442,22 +2191,23 @@ export default function AdminPage() {
             </div>
             <div className="flex items-center gap-2">
               <button onClick={addEntourageMember} className="px-4 py-2 rounded-lg text-sm" style={{ background: '#C9A96E', color: '#fff' }}>Add Entourage</button>
-              <button onClick={saveAllEntourage} className="px-4 py-2 rounded-lg text-sm inline-flex items-center gap-2" style={{ background: '#C9A96E', color: '#fff' }}>
-                <Save className="w-4 h-4" /> Save All Entourage
+              <button onClick={saveEntourageVerse} className="px-4 py-2 rounded-lg text-sm inline-flex items-center gap-2" style={{ background: '#C9A96E', color: '#fff' }}>
+                <Save className="w-4 h-4" /> Save Verse
               </button>
             </div>
             {entourageMembers.map((member) => (
               <div key={member.id} className="p-3 rounded-lg space-y-2" style={{ border: '1px solid #E8D5B7' }}>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                  <input value={member.name} onChange={(e) => setEntourageMembers((prev) => prev.map((item) => (item.id === member.id ? { ...item, name: e.target.value } : item)))} className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
-                  <input value={member.role} onChange={(e) => setEntourageMembers((prev) => prev.map((item) => (item.id === member.id ? { ...item, role: e.target.value } : item)))} className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
-                  <select value={member.group_name} onChange={(e) => setEntourageMembers((prev) => prev.map((item) => (item.id === member.id ? { ...item, group_name: e.target.value } : item)))} className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }}>
+                  <input value={member.name} onChange={(e) => setEntourageMembers((prev) => prev.map((item) => (item.id === member.id ? { ...item, name: e.target.value } : item)))} className="px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isEntourageFieldDirty(member.id, 'name') ? '#DC2626' : '#E8D5B7'}` }} />
+                  
+                  <select value={member.group_name} onChange={(e) => setEntourageMembers((prev) => prev.map((item) => (item.id === member.id ? { ...item, group_name: e.target.value } : item)))} className="px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isEntourageFieldDirty(member.id, 'group_name') ? '#DC2626' : '#E8D5B7'}` }}>
                     {ENTOURAGE_GROUP_OPTIONS.map((group) => <option key={group} value={group}>{group}</option>)}
                   </select>
-                  <input type="number" value={member.sort_order} onChange={(e) => setEntourageMembers((prev) => prev.map((item) => (item.id === member.id ? { ...item, sort_order: Number(e.target.value) || 0 } : item)))} className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
+                  <input type="number" value={member.sort_order} onChange={(e) => setEntourageMembers((prev) => prev.map((item) => (item.id === member.id ? { ...item, sort_order: Number(e.target.value) || 0 } : item)))} className="px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isEntourageFieldDirty(member.id, 'sort_order') ? '#DC2626' : '#E8D5B7'}` }} />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="text-xs"><input type="checkbox" checked={member.is_visible} onChange={(e) => setEntourageMembers((prev) => prev.map((item) => (item.id === member.id ? { ...item, is_visible: e.target.checked } : item)))} /> Visible</label>
+                  <label className="text-xs" style={{ color: isEntourageFieldDirty(member.id, 'is_visible') ? '#B91C1C' : undefined }}><input type="checkbox" checked={member.is_visible} onChange={(e) => setEntourageMembers((prev) => prev.map((item) => (item.id === member.id ? { ...item, is_visible: e.target.checked } : item)))} /> Visible</label>
+                  <button onClick={() => saveEntourageMember(member)} className="px-3 py-1.5 rounded text-xs" style={{ background: '#C9A96E', color: '#fff' }}>Save</button>
                   <button onClick={() => deleteEntourageMember(member.id)} className="px-3 py-1.5 rounded text-xs" style={{ background: '#FEE2E2', color: '#B91C1C' }}>Delete</button>
                 </div>
               </div>
@@ -1475,10 +2225,10 @@ export default function AdminPage() {
             </div>
             {faqs.map((faq) => (
               <div key={faq.id} className="p-3 rounded-lg" style={{ border: '1px solid #E8D5B7' }}>
-                <input value={faq.question} onChange={(e) => setFaqs((prev) => prev.map((f) => (f.id === faq.id ? { ...f, question: e.target.value } : f)))} className="w-full px-3 py-2 rounded-lg mb-2" style={{ border: '1.5px solid #E8D5B7' }} />
-                <textarea value={faq.answer} onChange={(e) => setFaqs((prev) => prev.map((f) => (f.id === faq.id ? { ...f, answer: e.target.value } : f)))} rows={3} className="w-full px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
+                <input value={faq.question} onChange={(e) => setFaqs((prev) => prev.map((f) => (f.id === faq.id ? { ...f, question: e.target.value } : f)))} className="w-full px-3 py-2 rounded-lg mb-2" style={{ border: `1.5px solid ${isFaqFieldDirty(faq.id, 'question') ? '#DC2626' : '#E8D5B7'}` }} />
+                <textarea value={faq.answer} onChange={(e) => setFaqs((prev) => prev.map((f) => (f.id === faq.id ? { ...f, answer: e.target.value } : f)))} rows={3} className="w-full px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isFaqFieldDirty(faq.id, 'answer') ? '#DC2626' : '#E8D5B7'}` }} />
                 <div className="mt-2 flex items-center gap-2">
-                  <label className="text-xs">
+                  <label className="text-xs" style={{ color: isFaqFieldDirty(faq.id, 'is_visible') ? '#B91C1C' : undefined }}>
                     <input type="checkbox" checked={faq.is_visible} onChange={(e) => setFaqs((prev) => prev.map((f) => (f.id === faq.id ? { ...f, is_visible: e.target.checked } : f)))} /> Visible
                   </label>
                   <button onClick={() => saveFaq(faq)} className="px-3 py-1.5 rounded text-xs" style={{ background: '#C9A96E', color: '#fff' }}>Save</button>
@@ -1494,19 +2244,168 @@ export default function AdminPage() {
         {tab === 'gallery' && (
           <section className="p-5 rounded-xl space-y-4" style={{ background: '#fff', border: '1px solid #E8D5B7' }}>
             <h2 className="font-serif text-xl" style={{ color: '#2C1810' }}>Gallery Manager</h2>
+            <div className="rounded-xl p-4 space-y-4" style={{ border: '1px solid #E8D5B7', background: '#FFFDF9' }}>
+              <h3 className="font-serif text-lg" style={{ color: '#2C1810' }}>All Image Uploads</h3>
+              <p className="text-xs" style={{ color: '#8B7355' }}>
+                Upload Hero, Venue, Dress Code, and Event Gallery images in one place.
+              </p>
+              <div className="space-y-3">
+                <div className="p-3 rounded-lg" style={{ border: `1px solid ${hasDirtyLabel('Hero/Venue Draft Uploads') ? '#DC2626' : '#E8D5B7'}` }}>
+                  <label className="block text-xs mb-2">Hero Image</label>
+                  <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3">
+                    <div className="rounded-lg overflow-hidden" style={{ border: '1px solid #E8D5B7', background: '#fff' }}>
+                      {(contentPreviewUrls.hero || details.hero_image_url) ? (
+                        <img src={contentPreviewUrls.hero || details.hero_image_url} alt="Hero preview" className="w-full h-28 object-contain" style={{ background: '#F7F0E4' }} />
+                      ) : (
+                        <p className="text-xs px-3 py-6" style={{ color: '#8B7355' }}>No hero image preview yet.</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <input
+                        value={details.hero_image_url}
+                        onChange={(e) => setDetails((p) => ({ ...p, hero_image_url: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg"
+                        style={{ border: '1.5px solid #E8D5B7' }}
+                      />
+                      <label className="text-sm inline-flex items-center gap-2 px-3 py-2 rounded-lg w-fit" style={{ border: '1.5px solid #E8D5B7' }}>
+                        <Upload className="w-4 h-4" />
+                        <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && setContentDraftFile(e.target.files[0], 'hero', 'hero_image_url')} />
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => saveContentImageSlot('hero')} className="px-3 py-1.5 rounded text-xs w-fit" style={{ background: '#C9A96E', color: '#fff' }}>Save</button>
+                        <button onClick={() => clearContentImageSlot('hero')} className="px-3 py-1.5 rounded text-xs w-fit" style={{ background: '#FEE2E2', color: '#B91C1C' }}>Delete</button>
+                      </div>
+                      <p className="text-xs" style={{ color: '#8B7355' }}>
+                        Recommended hero size: 1920 x 1080 (16:9).
+                        {heroMeta ? ` Current image: ${heroMeta.width} x ${heroMeta.height}.` : ''}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg" style={{ border: `1px solid ${hasDirtyLabel('Hero/Venue Draft Uploads') ? '#DC2626' : '#E8D5B7'}` }}>
+                  <label className="block text-xs mb-2">Venue Image</label>
+                  <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3">
+                    <div className="rounded-lg overflow-hidden" style={{ border: '1px solid #E8D5B7', background: '#fff' }}>
+                      {(contentPreviewUrls.venue || details.venue_image_url) ? (
+                        <img src={contentPreviewUrls.venue || details.venue_image_url} alt="Venue preview" className="w-full h-28 object-contain" style={{ background: '#F7F0E4' }} />
+                      ) : (
+                        <p className="text-xs px-3 py-6" style={{ color: '#8B7355' }}>No venue image preview yet.</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <input
+                        value={details.venue_image_url}
+                        onChange={(e) => setDetails((p) => ({ ...p, venue_image_url: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg"
+                        style={{ border: '1.5px solid #E8D5B7' }}
+                      />
+                      <label className="text-sm inline-flex items-center gap-2 px-3 py-2 rounded-lg w-fit" style={{ border: '1.5px solid #E8D5B7' }}>
+                        <Upload className="w-4 h-4" />
+                        <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && setContentDraftFile(e.target.files[0], 'venue', 'venue_image_url')} />
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => saveContentImageSlot('venue')} className="px-3 py-1.5 rounded text-xs w-fit" style={{ background: '#C9A96E', color: '#fff' }}>Save</button>
+                        <button onClick={() => clearContentImageSlot('venue')} className="px-3 py-1.5 rounded text-xs w-fit" style={{ background: '#FEE2E2', color: '#B91C1C' }}>Delete</button>
+                      </div>
+                      <p className="text-xs" style={{ color: '#8B7355' }}>
+                        Recommended venue size: 1600 x 900 (16:9).
+                        {venueMeta ? ` Current image: ${venueMeta.width} x ${venueMeta.height}.` : ''}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {[1, 2, 3].map((slot) => {
+                  const imageKey = `dress_code_image_${slot}` as 'dress_code_image_1' | 'dress_code_image_2' | 'dress_code_image_3';
+                  const visibleKey = `dress_code_image_${slot}_visible` as 'dress_code_image_1_visible' | 'dress_code_image_2_visible' | 'dress_code_image_3_visible';
+                  const draftPreview = dressCodePreviewUrls[slot as DressCodeSlot];
+                  const displayPreview = draftPreview || details[imageKey];
+                  return (
+                    <div key={slot} className="p-3 rounded-lg" style={{ border: `1px solid ${hasDirtyLabel('Dress Code Draft Uploads') ? '#DC2626' : '#E8D5B7'}` }}>
+                      <label className="block text-xs mb-2">{`Dress Code Image ${slot}`}</label>
+                      <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3">
+                        <div className="rounded-lg overflow-hidden" style={{ border: '1px solid #E8D5B7', background: '#fff' }}>
+                          {displayPreview ? (
+                            <img src={displayPreview} alt={`Dress code ${slot} preview`} className="w-full h-28 object-cover" />
+                          ) : (
+                            <p className="text-xs px-3 py-6" style={{ color: '#8B7355' }}>No image yet.</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <input
+                            value={details[imageKey]}
+                            onChange={(e) => setDetails((p) => ({ ...p, [imageKey]: e.target.value }))}
+                            className="w-full px-3 py-2 rounded-lg"
+                            style={{ border: '1.5px solid #E8D5B7' }}
+                          />
+                          <label className="text-sm inline-flex items-center gap-2 px-3 py-2 rounded-lg w-fit" style={{ border: '1.5px solid #E8D5B7' }}>
+                            <Upload className="w-4 h-4" />
+                            <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && setDressCodeDraftFile(e.target.files[0], slot as DressCodeSlot, imageKey)} />
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs"><input type="checkbox" checked={details[visibleKey]} onChange={(e) => setDetails((p) => ({ ...p, [visibleKey]: e.target.checked }))} /> Visible</label>
+                            <button onClick={() => saveDressCodeImageSlot(slot as 1 | 2 | 3)} className="px-3 py-1.5 rounded text-xs" style={{ background: '#C9A96E', color: '#fff' }}>Save</button>
+                            <button onClick={() => clearDressCodeImageSlot(slot as 1 | 2 | 3)} className="px-3 py-1.5 rounded text-xs" style={{ background: '#FEE2E2', color: '#B91C1C' }}>Delete</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <h3 className="font-serif text-lg" style={{ color: '#2C1810' }}>Event Gallery Images</h3>
             <label className="text-sm inline-flex items-center gap-2 px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }}>
               <Upload className="w-4 h-4" />
-              <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && uploadGalleryImage(e.target.files[0])} />
+              <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && stageGalleryImage(e.target.files[0])} />
             </label>
+            {newGalleryDraft.file && (
+              <div className="p-3 rounded-lg" style={{ border: `1px solid ${hasDirtyLabel('New Gallery Draft') ? '#DC2626' : '#E8D5B7'}` }}>
+                <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-2">
+                  <img src={newGalleryDraft.previewUrl} alt="New gallery preview" className="w-full h-24 object-cover rounded-lg" />
+                  <div className="space-y-2">
+                    <input
+                      value={newGalleryDraft.title}
+                      onChange={(e) => setNewGalleryDraft((prev) => ({ ...prev, title: e.target.value }))}
+                      placeholder="Title"
+                      className="w-full px-3 py-2 rounded-lg"
+                      style={{ border: '1.5px solid #E8D5B7' }}
+                    />
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs"><input type="checkbox" checked={newGalleryDraft.is_visible} onChange={(e) => setNewGalleryDraft((prev) => ({ ...prev, is_visible: e.target.checked }))} /> Visible</label>
+                      <button
+                        onClick={saveNewGalleryDraft}
+                        className="px-3 py-1.5 rounded text-xs"
+                        style={{ background: '#C9A96E', color: '#fff' }}
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (newGalleryDraft.previewUrl) URL.revokeObjectURL(newGalleryDraft.previewUrl);
+                          setNewGalleryDraft({ file: null, previewUrl: '', title: '', is_visible: true });
+                        }}
+                        className="px-3 py-1.5 rounded text-xs"
+                        style={{ background: '#FEE2E2', color: '#B91C1C' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             {gallery.map((item) => (
               <div key={item.id} className="p-3 rounded-lg" style={{ border: '1px solid #E8D5B7' }}>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
                   <img src={item.image_url} alt={item.title} className="w-full h-24 object-cover rounded-lg" />
                   <div className="md:col-span-4 space-y-2">
-                    <input value={item.title} onChange={(e) => setGallery((prev) => prev.map((g) => (g.id === item.id ? { ...g, title: e.target.value } : g)))} placeholder="Title" className="w-full px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
-                    <input value={item.image_url} onChange={(e) => setGallery((prev) => prev.map((g) => (g.id === item.id ? { ...g, image_url: e.target.value } : g)))} placeholder="Image URL" className="w-full px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
+                    <input value={item.title} onChange={(e) => setGallery((prev) => prev.map((g) => (g.id === item.id ? { ...g, title: e.target.value } : g)))} placeholder="Title" className="w-full px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isGalleryFieldDirty(item.id, 'title') ? '#DC2626' : '#E8D5B7'}` }} />
+                    <input value={item.image_url} onChange={(e) => setGallery((prev) => prev.map((g) => (g.id === item.id ? { ...g, image_url: e.target.value } : g)))} placeholder="Image URL" className="w-full px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isGalleryFieldDirty(item.id, 'image_url') ? '#DC2626' : '#E8D5B7'}` }} />
                     <div className="flex items-center gap-2">
-                      <label className="text-xs"><input type="checkbox" checked={item.is_visible} onChange={(e) => setGallery((prev) => prev.map((g) => (g.id === item.id ? { ...g, is_visible: e.target.checked } : g)))} /> Visible</label>
+                      <label className="text-xs" style={{ color: isGalleryFieldDirty(item.id, 'is_visible') ? '#B91C1C' : undefined }}><input type="checkbox" checked={item.is_visible} onChange={(e) => setGallery((prev) => prev.map((g) => (g.id === item.id ? { ...g, is_visible: e.target.checked } : g)))} /> Visible</label>
                       <button onClick={() => saveGalleryItem(item)} className="px-3 py-1.5 rounded text-xs" style={{ background: '#C9A96E', color: '#fff' }}>Save</button>
                       <button onClick={() => deleteGalleryItem(item.id)} className="px-3 py-1.5 rounded text-xs" style={{ background: '#FEE2E2', color: '#B91C1C' }}>Delete</button>
                     </div>

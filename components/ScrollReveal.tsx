@@ -15,11 +15,64 @@ const KNOWN_ANIMATIONS = [
   'reveal-left',
   'reveal-right',
   'zoom-in',
+  'reveal-blur-up',
+  'reveal-rotate-in',
+  'reveal-flip-up',
+  'reveal-fall-letters',
+  'reveal-image-rise',
+  'reveal-image-zoom',
   'animate-fade-in-up',
   'animate-fade-in',
   'slide-in-left',
   'slide-in-right',
 ];
+
+function restoreOriginalText(el: HTMLElement) {
+  const originalText = el.dataset.originalText;
+  if (typeof originalText === 'string') {
+    el.textContent = originalText;
+  }
+}
+
+function applyFallingLetters(el: HTMLElement, durationMs: number, delayMs: number) {
+  const sourceText = (el.dataset.originalText ?? el.textContent ?? '').toString();
+  if (!el.dataset.originalText) {
+    el.dataset.originalText = sourceText;
+  }
+
+  el.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  const chars = Array.from(sourceText);
+  const stagger = 35;
+  const highlightChar = (el.dataset.highlightChar || '').trim();
+  const highlightColor = (el.dataset.highlightColor || '').trim();
+
+  chars.forEach((char, idx) => {
+    if (char === ' ') {
+      frag.appendChild(document.createTextNode(' '));
+      return;
+    }
+    if (char === '\n') {
+      frag.appendChild(document.createElement('br'));
+      return;
+    }
+    const span = document.createElement('span');
+    span.className = 'fall-letter';
+    span.textContent = char;
+    if (highlightChar && char === highlightChar) {
+      span.classList.add('fall-letter-highlight');
+      if (highlightColor) span.style.color = highlightColor;
+    }
+    span.style.animationDuration = `${Math.max(220, durationMs)}ms`;
+    span.style.animationDelay = `${Math.max(0, delayMs + idx * stagger)}ms`;
+    frag.appendChild(span);
+  });
+
+  el.appendChild(frag);
+  el.classList.add('reveal-fall-letters');
+  el.style.opacity = '1';
+  el.style.transform = 'none';
+}
 
 function normalizeAnimation(raw?: string) {
   const value = (raw || '').trim();
@@ -29,6 +82,14 @@ function normalizeAnimation(raw?: string) {
 
 function applyAnimation(el: HTMLElement, raw?: string) {
   const anim = normalizeAnimation(raw);
+  const durationRaw = Number(el.dataset.animDuration || '');
+  const delayRaw = Number(el.dataset.animDelay || '');
+  const durationMs = Number.isFinite(durationRaw) && durationRaw > 0 ? durationRaw : 850;
+  const delayMs = Number.isFinite(delayRaw) && delayRaw >= 0 ? delayRaw : 0;
+
+  if (anim !== 'reveal-fall-letters') {
+    restoreOriginalText(el);
+  }
   // Reset previous animation state so newly selected admin animation always replays.
   el.style.animation = 'none';
   KNOWN_ANIMATIONS.forEach((cls) => el.classList.remove(cls));
@@ -36,7 +97,13 @@ function applyAnimation(el: HTMLElement, raw?: string) {
   void el.offsetWidth;
   el.style.animation = '';
   el.classList.remove('opacity-0');
-  el.classList.add(anim);
+  if (anim === 'reveal-fall-letters') {
+    applyFallingLetters(el, durationMs, delayMs);
+  } else {
+    el.classList.add(anim);
+    el.style.animationDuration = `${durationMs}ms`;
+    el.style.animationDelay = `${delayMs}ms`;
+  }
   el.style.willChange = 'transform, opacity';
 }
 

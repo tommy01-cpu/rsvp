@@ -116,11 +116,28 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
   const galleryImages = site.gallery.length ? site.gallery.map((item) => item.image_url) : content.galleryImages;
   const sectionText = (key: string, fallback = '') => (site.sectionConfig[key]?.content || '').trim() || fallback;
   const sectionAnim = (key: string, fallback = 'reveal-fade') => normalizeAnim(site.sectionConfig[key]?.animation || fallback);
+  const sectionDuration = (key: string, fallback = 850) => Math.max(100, site.sectionConfig[key]?.durationMs || fallback);
+  const sectionDelay = (key: string, fallback = 0) => Math.max(0, site.sectionConfig[key]?.delayMs || fallback);
+  const sectionAnimAttrs = (key: string, fallback = 'reveal-fade') => ({
+    'data-animate': sectionAnim(key, fallback),
+    'data-anim-duration': String(sectionDuration(key)),
+    'data-anim-delay': String(sectionDelay(key)),
+  });
+  const sectionAnimAttrsWithOffset = (key: string, fallback = 'reveal-fade', extraDelayMs = 0) => ({
+    'data-animate': sectionAnim(key, fallback),
+    'data-anim-duration': String(sectionDuration(key)),
+    'data-anim-delay': String(Math.max(0, sectionDelay(key) + extraDelayMs)),
+  });
   const sectionName = (key: string, fallback: string) =>
     site.sectionList.find((section) => section.section_key === key)?.name || fallback;
   const coupleSubtitle = sectionText('couple_info', site.wedding.title);
-  const sectionOrder = ['hero', 'invitation', 'couple_info', 'story', 'event_details', 'gallery', 'programme', 'entourage', 'venue', 'faq', 'gift_registry', 'dress_code', 'rsvp'];
+  const sectionOrder = ['invitation', 'couple_info', 'story', 'event_details', 'gallery', 'programme', 'entourage', 'venue', 'faq', 'gift_registry', 'dress_code', 'rsvp'];
   const nextAfterInvitation = sectionOrder.slice(sectionOrder.indexOf('invitation') + 1).find((key) => isSectionEnabled(key)) || 'rsvp';
+  const heroVisible =
+    isSectionEnabled('hero_title') ||
+    isSectionEnabled('hero_subtitle') ||
+    isSectionEnabled('hero_couple_text') ||
+    isSectionEnabled('hero_date');
   const headingSize = 'clamp(2rem, 5vw, 3.2rem)';
   const headingWeight = 300;
   const bodyStyle = { color: BROWN_MID, lineHeight: 1.8 };
@@ -140,18 +157,18 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
   const mainStyle: React.CSSProperties = {
     background: CREAM,
     minHeight: '100vh',
+    fontFamily: 'var(--font-lato), sans-serif',
   };
 
   return (
     <main className="scroll-smooth" style={mainStyle}>
-      {isSectionEnabled('hero') && (
+      {heroVisible && (
       <section id="hero" className="relative overflow-hidden" style={{ minHeight: '100svh' }}>
         <div className="absolute inset-0">
           <img
             src={content.heroImageUrl}
             alt={`${content.brideName} and ${content.groomName}`}
-            className="w-full h-full object-contain hero-zoom"
-            style={{ background: '#1A120B' }}
+            className="w-full h-full object-cover hero-zoom"
           />
           <div
             className="absolute inset-0"
@@ -163,7 +180,9 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
 
         <div
           className={`relative z-10 flex flex-col justify-center px-6 py-24 reveal-on-scroll opacity-0 ${isEditorial || isLuxe ? 'items-start text-left' : 'items-center text-center'}`}
-          data-animate={sectionAnim('hero', 'animate-fade-in-up')}
+          data-animate="reveal-fade"
+          data-anim-duration="700"
+          data-anim-delay="0"
           style={{ minHeight: '100svh', paddingLeft: isEditorial || isLuxe ? 'min(9vw, 100px)' : undefined }}
         >
           <div
@@ -177,54 +196,61 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
             }}
           >
           <p
-            className="font-sans-body text-xs tracking-[0.35em] uppercase mb-6 opacity-0 animate-fade-in"
-            style={{ color: '#E8D5B7', animationFillMode: 'forwards' }}
+            className="font-sans-body text-xs tracking-[0.35em] uppercase mb-6 reveal-on-scroll opacity-0"
+            {...sectionAnimAttrsWithOffset('hero_title', 'reveal-fade', 40)}
+            style={{ color: '#E8D5B7' }}
           >
-            {sectionText('hero', content.blessingText)}
+            {sectionText('hero_title', content.blessingText)}
           </p>
 
-          <h1
-            className="font-serif opacity-0 animate-fade-in-up delay-200"
-            style={{
-              fontSize: isEditorial ? 'clamp(2.8rem, 8vw, 6rem)' : 'clamp(3rem, 10vw, 7rem)',
-              fontWeight: isLuxe ? 400 : 300,
-              color: '#FFFDF9',
-              lineHeight: 1.1,
-              letterSpacing: isEditorial ? '0.01em' : '-0.01em',
-              animationFillMode: 'forwards',
-            }}
-          >
-            {content.brideName}
-            <span style={{ color: GOLD, fontStyle: 'italic' }}> &amp; </span>
-            {content.groomName}
-          </h1>
+          {isSectionEnabled('hero_couple_text') && (
+            <h1
+              className="font-serif reveal-on-scroll opacity-0"
+              {...sectionAnimAttrsWithOffset('hero_couple_text', 'reveal-up', 120)}
+              data-highlight-char="&"
+              data-highlight-color={GOLD}
+              style={{
+                fontSize: isEditorial ? 'clamp(2.8rem, 8vw, 6rem)' : 'clamp(3rem, 10vw, 7rem)',
+                fontWeight: isLuxe ? 400 : 300,
+                color: '#FFFDF9',
+                lineHeight: 1.1,
+                letterSpacing: isEditorial ? '0.01em' : '-0.01em',
+              }}
+            >
+              {content.brideName}
+              <span style={{ color: GOLD, fontStyle: 'italic' }}> &amp; </span>
+              {content.groomName}
+            </h1>
+          )}
 
           <p
-            className="font-serif italic opacity-0 animate-fade-in-up delay-400 mt-2"
+            className="font-serif italic reveal-on-scroll opacity-0 mt-2"
+            {...sectionAnimAttrsWithOffset('hero_subtitle', 'reveal-up', 260)}
             style={{
               fontSize: 'clamp(1.1rem, 3vw, 1.6rem)',
               color: '#E8D5B7',
               fontWeight: 300,
-              animationFillMode: 'forwards',
             }}
           >
             {content.heroSubtitle}
           </p>
 
-          <div className="mt-10 opacity-0 animate-fade-in-up delay-600" style={{ animationFillMode: 'forwards' }}>
-            <div
-              className="px-8 py-4 rounded-full inline-block"
-              style={{
-                border: `1.5px solid ${GOLD}`,
-                background: 'rgba(201, 169, 110, 0.12)',
-                backdropFilter: 'blur(4px)',
-              }}
-            >
-              <p className="font-serif" style={{ color: '#FFFDF9', fontSize: '1.1rem', letterSpacing: '0.05em' }}>
-                {content.weddingDateLabel}
-              </p>
+          {isSectionEnabled('hero_date') && (
+            <div className="mt-10 reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('hero_date', 'reveal-up', 220)}>
+              <div
+                className="px-8 py-4 rounded-full inline-block"
+                style={{
+                  border: `1.5px solid ${GOLD}`,
+                  background: 'rgba(201, 169, 110, 0.12)',
+                  backdropFilter: 'blur(4px)',
+                }}
+              >
+                <p className="font-serif" style={{ color: '#FFFDF9', fontSize: '1.1rem', letterSpacing: '0.05em' }}>
+                  {sectionText('hero_date', content.weddingDateLabel)}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="mt-16 opacity-0 animate-fade-in delay-800" style={{ animationFillMode: 'forwards' }}>
             <div style={{ width: 1, height: 60, background: `linear-gradient(to bottom, ${GOLD}, transparent)`, margin: '0 auto' }} />
@@ -240,7 +266,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       <div className="block md:hidden" style={{ height: 120 }} />
 
       {isSectionEnabled('invitation') && (
-        <section id="invitation" className="px-6 py-20 text-center reveal-on-scroll opacity-0" data-animate={sectionAnim('invitation', 'reveal-fade')} style={{ background: CREAM, position: 'relative', zIndex: 2 }}>
+        <section id="invitation" className="px-6 py-20 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrs('invitation', 'reveal-fade')} style={{ background: CREAM, position: 'relative', zIndex: 2 }}>
           {inviteSplitLayout ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center" style={{ maxWidth: 1080, margin: '0 auto' }}>
               <div className={`relative overflow-hidden ${isLuxe ? 'rounded-[2rem]' : 'rounded-2xl'}`} style={{ height: isLuxe ? 460 : 420, border: `1px solid ${BORDER}`, boxShadow: theme.cardShadow }}>
@@ -292,7 +318,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                 {sectionText('invitation', content.invitationText)}
               </FallingText>
               {!isClassic && (
-                <div className="mt-10 reveal-on-scroll opacity-0" data-animate={sectionAnim('invitation', 'reveal-up')}>
+                <div className="mt-10 reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('invitation', 'reveal-up', 120)}>
                   <div className="relative overflow-hidden rounded-2xl mx-auto" style={{ maxWidth: 560, height: templateKey === 'filmstrip_story' ? 240 : 220, border: `1px solid ${BORDER}` }}>
                     <img src={invitationImage} alt="Invitation visual" className="w-full h-full object-contain" style={{ background: '#F7F0E4' }} />
                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(20,10,5,0.38), rgba(20,10,5,0.05))' }} />
@@ -312,7 +338,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       )}
 
       {isSectionEnabled('couple_info') && (
-        <section id="couple_info" className="px-6 py-14 text-center reveal-on-scroll opacity-0" data-animate={sectionAnim('couple_info', 'reveal-fade')} style={{ background: CREAM }}>
+        <section id="couple_info" className="px-6 py-14 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrs('couple_info', 'reveal-fade')} style={{ background: CREAM }}>
           <div style={{ maxWidth: 760, margin: '0 auto' }}>
             <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
               {sectionName('couple_info', 'Couple')}
@@ -330,7 +356,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       )}
 
       {isSectionEnabled('story') && (
-        <section id="story" className="px-6 py-20 text-center reveal-on-scroll opacity-0" data-animate={sectionAnim('story', 'reveal-fade')} style={{ background: CREAM_SECTION }}>
+        <section id="story" className="px-6 py-20 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrs('story', 'reveal-fade')} style={{ background: CREAM_SECTION }}>
           <div style={{ maxWidth: 760, margin: '0 auto' }}>
             <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
               {sectionName('story', 'Our Story')}
@@ -346,7 +372,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       )}
 
       {isSectionEnabled('event_details') && (
-        <section id="event_details" className="px-6 py-20 reveal-on-scroll opacity-0" data-animate={sectionAnim('event_details', 'reveal-fade')} style={{ background: CREAM_SECTION }}>
+        <section id="event_details" className="px-6 py-20 reveal-on-scroll opacity-0" {...sectionAnimAttrs('event_details', 'reveal-fade')} style={{ background: CREAM_SECTION }}>
           <div style={{ maxWidth: 900, margin: '0 auto' }}>
             <div className="text-center mb-14">
               <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
@@ -425,13 +451,19 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       )}
 
       {isSectionEnabled('gallery') && (
-        <section id="gallery" className="py-0 reveal-on-scroll opacity-0" data-animate={sectionAnim('gallery', 'reveal-fade')}>
-          <WeddingGallery images={galleryImages} templateKey="classic_grid" animation={sectionAnim('gallery', 'reveal-fade')} />
+        <section id="gallery" className="py-0 reveal-on-scroll opacity-0" {...sectionAnimAttrs('gallery', 'reveal-fade')}>
+          <WeddingGallery
+            images={galleryImages}
+            templateKey="classic_grid"
+            animation={sectionAnim('gallery', 'reveal-fade')}
+            animationDurationMs={sectionDuration('gallery')}
+            animationDelayMs={sectionDelay('gallery')}
+          />
         </section>
       )}
 
       {isSectionEnabled('programme') && (
-        <section id="programme" className="px-6 py-20 text-center reveal-on-scroll opacity-0" data-animate={sectionAnim('programme', 'reveal-fade')} style={{ background: CREAM, position: 'relative', zIndex: 10 }}>
+        <section id="programme" className="px-6 py-20 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrs('programme', 'reveal-fade')} style={{ background: CREAM, position: 'relative', zIndex: 10 }}>
           <div style={{ maxWidth: 680, margin: '0 auto' }}>
             <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
               {sectionName('programme', 'The Day')}
@@ -451,7 +483,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                   <div
                     key={`${item.time}-${item.label}-${i}`}
                     className="relative flex items-start gap-6 pb-0 reveal-on-scroll opacity-0"
-                    style={{ animationDelay: `${i * 120}ms` }}
+                    {...sectionAnimAttrsWithOffset('programme', sectionAnim('programme', 'reveal-up'), i * 120)}
                   >
                     {i < arr.length - 1 && (
                       <div
@@ -513,8 +545,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                   <div
                     key={`${item.time}-${item.label}-${i}`}
                     className="relative grid grid-cols-[74px_30px_1fr] items-start gap-4 pb-8 reveal-on-scroll opacity-0"
-                    data-animate={sectionAnim('programme', 'reveal-up')}
-                    style={{ animationDelay: `${i * 140}ms` }}
+                    {...sectionAnimAttrsWithOffset('programme', sectionAnim('programme', 'reveal-up'), i * 140)}
                   >
                     <div className="text-right pt-0.5">
                       <span className="font-sans-body text-xs tracking-wide" style={{ color: BROWN_LIGHT, display: 'inline-block' }}>
@@ -554,7 +585,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       )}
 
       {isSectionEnabled('entourage') && (
-        <section id="entourage" className="px-6 py-20 text-center reveal-on-scroll opacity-0" data-animate={sectionAnim('entourage', 'reveal-fade')} style={{ background: CREAM }}>
+        <section id="entourage" className="px-6 py-20 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrs('entourage', 'reveal-fade')} style={{ background: CREAM }}>
           <div style={{ maxWidth: 980, margin: '0 auto' }}>
             <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
               {sectionName('entourage', 'Wedding Entourage')}
@@ -564,7 +595,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 items-start">
               <div className="text-center md:text-left">
-                <div className="reveal-on-scroll opacity-0" data-animate={sectionAnim('entourage', 'reveal-right')} style={{ animationDelay: '0.12s' }}>
+                <div className="reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-right'), 120)}>
                   <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Parents of the Groom</p>
                   {content.entourage.groomParents.map((name) => (
                     <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`} style={{ color: BROWN_DARK }}>
@@ -574,7 +605,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                 </div>
               </div>
               <div className="text-center md:text-right">
-                <div className="reveal-on-scroll opacity-0" data-animate={sectionAnim('entourage', 'reveal-left')} style={{ animationDelay: '0.14s' }}>
+                <div className="reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-left'), 140)}>
                   <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Parents of the Bride</p>
                   {content.entourage.brideParents.map((name) => (
                     <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`} style={{ color: BROWN_DARK }}>
@@ -585,18 +616,18 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
               </div>
             </div>
 
-            <div className="text-center mb-10 reveal-on-scroll opacity-0" data-animate={sectionAnim('entourage', 'reveal-fade')} style={{ animationDelay: '0.16s' }}>
+            <div className="text-center mb-10 reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-fade'), 160)}>
               <p className="font-sans-body text-sm tracking-wide uppercase mb-2" style={{ color: BROWN_LIGHT }}>Officiating Minister</p>
               <p className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`} style={{ color: BROWN_DARK, fontSize: '1.25rem' }}>
                 {content.entourage.officiatingMinister}
               </p>
             </div>
 
-            <div className="mb-10 reveal-on-scroll opacity-0" data-animate={sectionAnim('entourage', 'reveal-fade')} style={{ animationDelay: '0.12s' }}>
+            <div className="mb-10 reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-fade'), 120)}>
               <p className="font-sans-body text-sm tracking-wide uppercase mb-6" style={{ color: BROWN_LIGHT }}>Principal Sponsors</p>
 
               <div className="grid grid-cols-2 gap-8 max-w-2xl mx-auto">
-                <div className="text-center md:text-right reveal-on-scroll opacity-0" data-animate={sectionAnim('entourage', 'reveal-right')} style={{ animationDelay: '0.18s' }}>
+                <div className="text-center md:text-right reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-right'), 180)}>
                   <div className="space-y-2">
                     {content.entourage.principalSponsorsMale.map((name) => (
                       <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>
@@ -606,7 +637,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                   </div>
                 </div>
 
-                <div className="text-center md:text-left reveal-on-scroll opacity-0" data-animate={sectionAnim('entourage', 'reveal-left')} style={{ animationDelay: '0.2s' }}>
+                <div className="text-center md:text-left reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-left'), 200)}>
                   <div className="space-y-2">
                     {content.entourage.principalSponsorsFemale.map((name) => (
                       <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>
@@ -622,7 +653,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
               <p className="font-sans-body text-sm tracking-wide uppercase mb-6" style={{ color: BROWN_LIGHT }}>Secondary Sponsors</p>
 
               <div className="grid grid-cols-2 gap-8 max-w-3xl mx-auto mb-8">
-                <div className="text-center md:text-left reveal-on-scroll opacity-0" data-animate={sectionAnim('entourage', 'reveal-right')} style={{ animationDelay: '0.22s' }}>
+                <div className="text-center md:text-left reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-right'), 220)}>
                   <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Best Man</p>
                   <p className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>{content.entourage.bestMan}</p>
 
@@ -636,7 +667,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                   </div>
                 </div>
 
-                <div className="text-center md:text-right reveal-on-scroll opacity-0" data-animate={sectionAnim('entourage', 'reveal-left')} style={{ animationDelay: '0.24s' }}>
+                <div className="text-center md:text-right reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-left'), 240)}>
                   <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Maid of Honor</p>
                   <p className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>{content.entourage.maidOfHonor}</p>
 
@@ -652,7 +683,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
               </div>
 
               <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
-                <div className="reveal-on-scroll opacity-0" data-animate={sectionAnim('entourage', 'reveal-right')} style={{ animationDelay: '0.26s' }}>
+                <div className="reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-right'), 260)}>
                   <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Coin Bearer</p>
                   {content.entourage.coinBearer.map((name) => (
                     <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>
@@ -660,7 +691,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                     </p>
                   ))}
                 </div>
-                <div className="reveal-on-scroll opacity-0" data-animate={sectionAnim('entourage', 'reveal-fade')} style={{ animationDelay: '0.28s' }}>
+                <div className="reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-fade'), 280)}>
                   <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Bible Bearer</p>
                   {content.entourage.bibleBearer.map((name) => (
                     <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>
@@ -668,7 +699,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                     </p>
                   ))}
                 </div>
-                <div className="reveal-on-scroll opacity-0" data-animate={sectionAnim('entourage', 'reveal-left')} style={{ animationDelay: '0.3s' }}>
+                <div className="reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-left'), 300)}>
                   <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Ring Bearer</p>
                   {content.entourage.ringBearer.map((name) => (
                     <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>
@@ -678,7 +709,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                 </div>
               </div>
 
-              <div className="mt-8 reveal-on-scroll opacity-0" data-animate={sectionAnim('entourage', 'reveal-fade')} style={{ animationDelay: '0.32s' }}>
+              <div className="mt-8 reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-fade'), 320)}>
                 <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Flower</p>
                 <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
                   {content.entourage.flower.map((name) => (
@@ -698,9 +729,9 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       )}
 
       {isSectionEnabled('venue') && (
-        <section id="venue" className="overflow-hidden reveal-on-scroll opacity-0" data-animate={sectionAnim('venue', 'reveal-fade')} style={{ background: CREAM_SECTION }}>
+        <section id="venue" className="overflow-hidden reveal-on-scroll opacity-0" {...sectionAnimAttrs('venue', 'reveal-fade')} style={{ background: CREAM_SECTION }}>
           <div className="grid grid-cols-1 md:grid-cols-2" style={{ minHeight: 420 }}>
-            <div className="relative reveal-on-scroll opacity-0" data-animate={sectionAnim('venue', 'reveal-left')} style={{ minHeight: 280, animationDelay: '0.34s' }}>
+            <div className="relative reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('venue', sectionAnim('venue', 'reveal-left'), 340)} style={{ minHeight: 280 }}>
               <img src={content.venueImageUrl} alt="Wedding venue" className="w-full h-full object-contain" style={{ minHeight: 280, background: '#F7F0E4' }} />
               <div className="absolute inset-0" style={{ background: 'rgba(20,10,5,0.12)' }} />
             </div>
@@ -737,7 +768,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       )}
 
       {isSectionEnabled('faq') && site.faqs.length > 0 && (
-        <section id="faq" className="px-6 py-20 reveal-on-scroll opacity-0" data-animate={sectionAnim('faq', 'reveal-fade')} style={{ background: CREAM_SECTION }}>
+        <section id="faq" className="px-6 py-20 reveal-on-scroll opacity-0" {...sectionAnimAttrs('faq', 'reveal-fade')} style={{ background: CREAM_SECTION }}>
           <div style={{ maxWidth: 900, margin: '0 auto' }}>
             <div className="text-center mb-10">
               <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
@@ -790,7 +821,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       )}
 
       {isSectionEnabled('gift_registry') && (
-        <section id="gift_registry" className="px-6 py-20 text-center reveal-on-scroll opacity-0" data-animate={sectionAnim('gift_registry', 'reveal-fade')} style={{ background: CREAM_SECTION }}>
+        <section id="gift_registry" className="px-6 py-20 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrs('gift_registry', 'reveal-fade')} style={{ background: CREAM_SECTION }}>
           <div style={{ maxWidth: 760, margin: '0 auto' }}>
             <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
               {sectionName('gift_registry', 'Gift Registry')}
@@ -806,7 +837,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       )}
 
       {isSectionEnabled('dress_code') && (
-        <section id="dress_code" className="px-6 py-20 text-center reveal-on-scroll opacity-0" data-animate={sectionAnim('dress_code', 'reveal-fade')} style={{ background: CREAM }}>
+        <section id="dress_code" className="px-6 py-20 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrs('dress_code', 'reveal-fade')} style={{ background: CREAM }}>
           <div style={{ maxWidth: 760, margin: '0 auto' }}>
             <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
               {sectionName('dress_code', 'Dress Code')}
@@ -817,12 +848,33 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
             <p className="font-sans-body leading-relaxed" style={{ color: BROWN_MID }}>
               {sectionText('dress_code', site.dressCode.description || 'Formal attire is appreciated.')}
             </p>
+            {site.dressCode.images.length > 0 && (
+              <div
+                className={[
+                  'mt-8 gap-4',
+                  site.dressCode.images.length === 1 ? 'grid grid-cols-1 max-w-sm mx-auto' : '',
+                  site.dressCode.images.length === 2 ? 'grid grid-cols-1 md:grid-cols-2 max-w-2xl mx-auto' : '',
+                  site.dressCode.images.length >= 3 ? 'grid grid-cols-1 md:grid-cols-3' : '',
+                ].join(' ')}
+              >
+                {site.dressCode.images.slice(0, 3).map((imageUrl, idx) => (
+                  <div
+                    key={`${imageUrl}-${idx}`}
+                    className="rounded-2xl overflow-hidden reveal-on-scroll opacity-0"
+                    data-animate={sectionAnim('dress_code', 'reveal-up')}
+                    style={{ border: `1px solid ${BORDER}`, background: '#fff' }}
+                  >
+                    <img src={imageUrl} alt={`Dress code reference ${idx + 1}`} className="w-full h-44 object-cover" />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       )}
 
       {isSectionEnabled('rsvp') && (
-        <section className="px-6 py-20 reveal-on-scroll opacity-0" data-animate={sectionAnim('rsvp', 'reveal-fade')} style={{ background: CREAM }} id="rsvp">
+        <section className="px-6 py-20 reveal-on-scroll opacity-0" {...sectionAnimAttrs('rsvp', 'reveal-fade')} style={{ background: CREAM }} id="rsvp">
           <div style={{ maxWidth: 640, margin: '0 auto' }}>
             <div className="text-center mb-10">
               <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
