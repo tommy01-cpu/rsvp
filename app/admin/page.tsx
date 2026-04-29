@@ -167,7 +167,7 @@ const SECTION_KEYS = [
   { key: 'hero_title', label: 'Hero Title' },
   { key: 'hero_subtitle', label: 'Hero Subtitle' },
   { key: 'hero_couple_text', label: 'Hero Couple Text' },
-  { key: 'hero_date', label: 'Hero Date' },
+  { key: 'invitation', label: 'Invitation' },
   { key: 'couple_info', label: 'Couple Info' },
   { key: 'story', label: 'Story' },
   { key: 'venue', label: 'Venue' },
@@ -179,7 +179,6 @@ const SECTION_KEYS = [
   { key: 'dress_code', label: 'Dress Code' },
   { key: 'event_details', label: 'Event Details' },
   { key: 'programme', label: 'Programme' },
-  { key: 'invitation', label: 'Invitation' },
 ];
 
 const SECTION_DISPLAY_ORDER: Record<string, number> = SECTION_KEYS.reduce<Record<string, number>>((acc, item, idx) => {
@@ -567,12 +566,11 @@ export default function AdminPage() {
   const hasDedicatedSectionField = (sectionKey: string) =>
     sectionKey === 'hero_title' ||
     sectionKey === 'hero_subtitle' ||
-    sectionKey === 'hero_couple_text' ||
-    sectionKey === 'hero_date';
+    sectionKey === 'hero_couple_text';
   const usesCoreDetailField = (sectionKey: string) =>
     sectionKey === 'hero_title' || sectionKey === 'hero_subtitle';
   const usesSectionContentField = (sectionKey: string) =>
-    sectionKey === 'hero_couple_text' || sectionKey === 'hero_date';
+    sectionKey === 'hero_couple_text';
   const isSectionContentEditable = (sectionKey: string) =>
     !managedInSeparateTab(sectionKey) && !hasDedicatedSectionField(sectionKey);
 
@@ -1027,7 +1025,6 @@ export default function AdminPage() {
     if (sectionKey === 'hero_title') return details.blessing_text || '';
     if (sectionKey === 'hero_subtitle') return details.hero_subtitle || '';
     if (sectionKey === 'hero_couple_text') return `${couple.bride_name || ''} & ${couple.groom_name || ''}`.trim();
-    if (sectionKey === 'hero_date') return details.wedding_date_label || '';
     if (sectionKey === 'couple_info') return `${couple.bride_name || ''} & ${couple.groom_name || ''}`.trim();
     if (sectionKey === 'story') return details.invitation_text || '';
     if (sectionKey === 'invitation') return details.invitation_text || '';
@@ -1852,6 +1849,7 @@ export default function AdminPage() {
             <h2 className="font-serif text-xl" style={{ color: '#2C1810' }}>Section Toggles</h2>
             {[...sections]
               .filter((section) => section.section_key !== 'hero')
+              .filter((section) => section.section_key !== 'hero_date')
               .sort((a, b) => {
                 const ai = SECTION_DISPLAY_ORDER[a.section_key] ?? 999;
                 const bi = SECTION_DISPLAY_ORDER[b.section_key] ?? 999;
@@ -1928,23 +1926,6 @@ export default function AdminPage() {
                       <div className="md:col-span-2">
                         <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>
                           Hero Couple Text
-                        </label>
-                        <input
-                          value={getEffectiveSectionContent(section)}
-                          onChange={(e) =>
-                            setSections((prev) =>
-                              prev.map((row) => (row.id === section.id ? { ...row, content_text: e.target.value } : row)),
-                            )
-                          }
-                          className="w-full px-3 py-2 rounded-lg"
-                          style={{ border: '1.5px solid #E8D5B7' }}
-                        />
-                      </div>
-                    )}
-                    {section.section_key === 'hero_date' && (
-                      <div className="md:col-span-2">
-                        <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>
-                          Hero Date Text
                         </label>
                         <input
                           value={getEffectiveSectionContent(section)}

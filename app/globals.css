@@ -238,7 +238,7 @@
   will-change: transform, opacity;
 }
 .fall-letter-highlight {
-  color: inherit;
+  color: #C9A96E !important;
 }
 
 /* Default hidden state for reveal-on-scroll elements */

@@ -136,8 +136,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
   const heroVisible =
     isSectionEnabled('hero_title') ||
     isSectionEnabled('hero_subtitle') ||
-    isSectionEnabled('hero_couple_text') ||
-    isSectionEnabled('hero_date');
+    isSectionEnabled('hero_couple_text');
   const headingSize = 'clamp(2rem, 5vw, 3.2rem)';
   const headingWeight = 300;
   const bodyStyle = { color: BROWN_MID, lineHeight: 1.8 };
@@ -209,6 +208,8 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
               {...sectionAnimAttrsWithOffset('hero_couple_text', 'reveal-up', 120)}
               data-highlight-char="&"
               data-highlight-color={GOLD}
+              data-allow-fall-letters="1"
+              data-original-text={`${content.brideName} & ${content.groomName}`}
               style={{
                 fontSize: isEditorial ? 'clamp(2.8rem, 8vw, 6rem)' : 'clamp(3rem, 10vw, 7rem)',
                 fontWeight: isLuxe ? 400 : 300,
@@ -235,22 +236,20 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
             {content.heroSubtitle}
           </p>
 
-          {isSectionEnabled('hero_date') && (
-            <div className="mt-10 reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('hero_date', 'reveal-up', 220)}>
-              <div
-                className="px-8 py-4 rounded-full inline-block"
-                style={{
-                  border: `1.5px solid ${GOLD}`,
-                  background: 'rgba(201, 169, 110, 0.12)',
-                  backdropFilter: 'blur(4px)',
-                }}
-              >
-                <p className="font-serif" style={{ color: '#FFFDF9', fontSize: '1.1rem', letterSpacing: '0.05em' }}>
-                  {sectionText('hero_date', content.weddingDateLabel)}
-                </p>
-              </div>
+          <div className="mt-10 opacity-0 animate-fade-in-up delay-600" style={{ animationFillMode: 'forwards' }}>
+            <div
+              className="px-8 py-4 rounded-full inline-block"
+              style={{
+                border: `1.5px solid ${GOLD}`,
+                background: 'rgba(201, 169, 110, 0.12)',
+                backdropFilter: 'blur(4px)',
+              }}
+            >
+              <p className="font-serif" style={{ color: '#FFFDF9', fontSize: '1.1rem', letterSpacing: '0.05em' }}>
+                {content.weddingDateLabel}
+              </p>
             </div>
-          )}
+          </div>
 
           <div className="mt-16 opacity-0 animate-fade-in delay-800" style={{ animationFillMode: 'forwards' }}>
             <div style={{ width: 1, height: 60, background: `linear-gradient(to bottom, ${GOLD}, transparent)`, margin: '0 auto' }} />

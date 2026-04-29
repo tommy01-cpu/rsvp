@@ -28,14 +28,35 @@ const KNOWN_ANIMATIONS = [
 ];
 
 function restoreOriginalText(el: HTMLElement) {
-  const originalText = el.dataset.originalText;
-  if (typeof originalText === 'string') {
-    el.textContent = originalText;
+  const originalHtml = el.dataset.originalHtml;
+  if (typeof originalHtml === 'string' && el.dataset.fallApplied === '1') {
+    el.innerHTML = originalHtml;
+    delete el.dataset.fallApplied;
+    return;
   }
+  const originalText = el.dataset.originalText;
+  if (typeof originalText === 'string' && el.dataset.fallApplied === '1') {
+    el.textContent = originalText;
+    delete el.dataset.fallApplied;
+  }
+}
+
+function isTextOnlyElement(el: HTMLElement) {
+  // Letter-by-letter animation should not rewrite structured containers.
+  // It is safe only when the element has no child elements.
+  if (el.children.length === 0) return true;
+  // Opt-in escape hatch for specific heading/text elements that intentionally
+  // provide a plain-text source via data-original-text.
+  const allows = el.dataset.allowFallLetters === '1';
+  const hasSource = typeof el.dataset.originalText === 'string' && el.dataset.originalText.length > 0;
+  return allows && hasSource;
 }
 
 function applyFallingLetters(el: HTMLElement, durationMs: number, delayMs: number) {
   const sourceText = (el.dataset.originalText ?? el.textContent ?? '').toString();
+  if (!el.dataset.originalHtml) {
+    el.dataset.originalHtml = el.innerHTML;
+  }
   if (!el.dataset.originalText) {
     el.dataset.originalText = sourceText;
   }
@@ -59,7 +80,9 @@ function applyFallingLetters(el: HTMLElement, durationMs: number, delayMs: numbe
     const span = document.createElement('span');
     span.className = 'fall-letter';
     span.textContent = char;
-    if (highlightChar && char === highlightChar) {
+    const normalizedChar = char.trim();
+    const normalizedHighlight = highlightChar.trim();
+    if (normalizedHighlight && normalizedChar === normalizedHighlight) {
       span.classList.add('fall-letter-highlight');
       if (highlightColor) span.style.color = highlightColor;
     }
@@ -72,6 +95,7 @@ function applyFallingLetters(el: HTMLElement, durationMs: number, delayMs: numbe
   el.classList.add('reveal-fall-letters');
   el.style.opacity = '1';
   el.style.transform = 'none';
+  el.dataset.fallApplied = '1';
 }
 
 function normalizeAnimation(raw?: string) {
@@ -97,10 +121,16 @@ function applyAnimation(el: HTMLElement, raw?: string) {
   void el.offsetWidth;
   el.style.animation = '';
   el.classList.remove('opacity-0');
-  if (anim === 'reveal-fall-letters') {
+  if (anim === 'reveal-fall-letters' && isTextOnlyElement(el)) {
     applyFallingLetters(el, durationMs, delayMs);
   } else {
+    // Fallback for non-text containers to preserve layout and child markup.
+    const fallbackAnim = anim === 'reveal-fall-letters' ? 'reveal-fade' : anim;
     el.classList.add(anim);
+    if (fallbackAnim !== anim) {
+      el.classList.remove(anim);
+      el.classList.add(fallbackAnim);
+    }
     el.style.animationDuration = `${durationMs}ms`;
     el.style.animationDelay = `${delayMs}ms`;
   }
