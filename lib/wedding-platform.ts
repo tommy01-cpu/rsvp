@@ -106,6 +106,7 @@ type EntourageRow = {
 };
 
 export type WeddingSiteData = {
+  found: boolean;
   wedding: WeddingRow;
   content: WeddingContent;
   sections: Record<string, boolean>;
@@ -204,6 +205,10 @@ function buildContentFromRows(
     ...defaultWeddingContent,
     brideName: couple?.bride_name || defaultWeddingContent.brideName,
     groomName: couple?.groom_name || defaultWeddingContent.groomName,
+    brideDetails: couple?.bride_nickname || defaultWeddingContent.brideDetails,
+    groomDetails: couple?.groom_nickname || defaultWeddingContent.groomDetails,
+    brideImageUrl: couple?.bride_image || defaultWeddingContent.brideImageUrl,
+    groomImageUrl: couple?.groom_image || defaultWeddingContent.groomImageUrl,
     blessingText: details?.blessing_text || defaultWeddingContent.blessingText,
     heroSubtitle: details?.hero_subtitle || defaultWeddingContent.heroSubtitle,
     weddingDateLabel: details?.wedding_date_label || fullDateFromDate || defaultWeddingContent.weddingDateLabel,
@@ -281,6 +286,7 @@ export async function getWeddingSiteData(slug?: string): Promise<WeddingSiteData
   if (!supabase) {
     const defaultWedding = getDefaultWedding();
     return {
+      found: true,
       wedding: defaultWedding,
       content: defaultWeddingContent,
       sections: toSectionMap([]),
@@ -303,6 +309,7 @@ export async function getWeddingSiteData(slug?: string): Promise<WeddingSiteData
 
   if (!weddingRes.data) {
     return {
+      found: false,
       wedding,
       content: defaultWeddingContent,
       sections: toSectionMap([]),
@@ -328,6 +335,7 @@ export async function getWeddingSiteData(slug?: string): Promise<WeddingSiteData
   const details = detailRes.data as DetailRow | null;
 
   return {
+    found: true,
     wedding,
     content: buildContentFromRows(
       (coupleRes.data as CoupleRow | null) || null,

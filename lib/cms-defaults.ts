@@ -32,6 +32,10 @@ export type WeddingContent = {
   blessingText: string;
   brideName: string;
   groomName: string;
+  brideDetails: string;
+  groomDetails: string;
+  brideImageUrl: string;
+  groomImageUrl: string;
   heroSubtitle: string;
   weddingDateLabel: string;
   heroImageUrl: string;
@@ -91,6 +95,12 @@ export const defaultWeddingContent: WeddingContent = {
   blessingText: 'By the grace of God and with the blessings of our families',
   brideName: 'Claire',
   groomName: 'James',
+  brideDetails: 'Beloved daughter, joyful heart.',
+  groomDetails: 'Beloved son, faithful soul.',
+  brideImageUrl:
+    'https://images.pexels.com/photos/1024993/pexels-photo-1024993.jpeg?auto=compress&cs=tinysrgb&w=900',
+  groomImageUrl:
+    'https://images.pexels.com/photos/169198/pexels-photo-169198.jpeg?auto=compress&cs=tinysrgb&w=900',
   heroSubtitle: 'cordially invited you to join us as we celebrate the sacrament of matrimony',
   weddingDateLabel: 'May 09, 2026',
   heroImageUrl:
@@ -198,4 +208,3 @@ export const defaultSectionConfigs: SectionConfig[] = [
   { key: 'faq', label: 'FAQ', is_enabled: false, sort_order: 70 },
   { key: 'rsvp', label: 'RSVP Form', is_enabled: true, sort_order: 80 },
 ];
-

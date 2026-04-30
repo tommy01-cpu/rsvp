@@ -63,32 +63,39 @@ function applyFallingLetters(el: HTMLElement, durationMs: number, delayMs: numbe
 
   el.innerHTML = '';
   const frag = document.createDocumentFragment();
-  const chars = Array.from(sourceText);
   const stagger = 35;
   const highlightChar = (el.dataset.highlightChar || '').trim();
   const highlightColor = (el.dataset.highlightColor || '').trim();
+  const parts = sourceText.split(/(\s+)/);
+  let letterIndex = 0;
 
-  chars.forEach((char, idx) => {
-    if (char === ' ') {
-      frag.appendChild(document.createTextNode(' '));
+  parts.forEach((part) => {
+    if (!part) return;
+    if (/^\s+$/.test(part)) {
+      frag.appendChild(document.createTextNode(part));
       return;
     }
-    if (char === '\n') {
-      frag.appendChild(document.createElement('br'));
-      return;
-    }
-    const span = document.createElement('span');
-    span.className = 'fall-letter';
-    span.textContent = char;
-    const normalizedChar = char.trim();
-    const normalizedHighlight = highlightChar.trim();
-    if (normalizedHighlight && normalizedChar === normalizedHighlight) {
-      span.classList.add('fall-letter-highlight');
-      if (highlightColor) span.style.color = highlightColor;
-    }
-    span.style.animationDuration = `${Math.max(220, durationMs)}ms`;
-    span.style.animationDelay = `${Math.max(0, delayMs + idx * stagger)}ms`;
-    frag.appendChild(span);
+    const word = document.createElement('span');
+    word.style.whiteSpace = 'nowrap';
+    word.style.display = 'inline-block';
+
+    Array.from(part).forEach((char) => {
+      const span = document.createElement('span');
+      span.className = 'fall-letter';
+      span.textContent = char;
+      const normalizedChar = char.trim();
+      const normalizedHighlight = highlightChar.trim();
+      if (normalizedHighlight && normalizedChar === normalizedHighlight) {
+        span.classList.add('fall-letter-highlight');
+        if (highlightColor) span.style.color = highlightColor;
+      }
+      span.style.animationDuration = `${Math.max(220, durationMs)}ms`;
+      span.style.animationDelay = `${Math.max(0, delayMs + letterIndex * stagger)}ms`;
+      word.appendChild(span);
+      letterIndex += 1;
+    });
+
+    frag.appendChild(word);
   });
 
   el.appendChild(frag);

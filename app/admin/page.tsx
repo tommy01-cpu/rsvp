@@ -114,6 +114,7 @@ type ImageMeta = {
 };
 type DressCodeSlot = 1 | 2 | 3;
 type ContentImageSlot = 'hero' | 'venue';
+type CoupleImageSlot = 'bride' | 'groom';
 
 const DEFAULT_COUPLE: CoupleRow = {
   bride_name: '',
@@ -263,6 +264,8 @@ export default function AdminPage() {
   const [dressCodePreviewUrls, setDressCodePreviewUrls] = useState<Partial<Record<DressCodeSlot, string>>>({});
   const [pendingContentFiles, setPendingContentFiles] = useState<Partial<Record<ContentImageSlot, File>>>({});
   const [contentPreviewUrls, setContentPreviewUrls] = useState<Partial<Record<ContentImageSlot, string>>>({});
+  const [pendingCoupleFiles, setPendingCoupleFiles] = useState<Partial<Record<CoupleImageSlot, File>>>({});
+  const [couplePreviewUrls, setCouplePreviewUrls] = useState<Partial<Record<CoupleImageSlot, string>>>({});
   const [newGalleryDraft, setNewGalleryDraft] = useState<{ file: File | null; previewUrl: string; title: string; is_visible: boolean }>({
     file: null,
     previewUrl: '',
@@ -347,6 +350,7 @@ export default function AdminPage() {
       entourage: m,
       pendingDressCodeFiles: Object.keys(pendingDressCodeFiles).sort(),
       pendingContentFiles: Object.keys(pendingContentFiles).sort(),
+      pendingCoupleFiles: Object.keys(pendingCoupleFiles).sort(),
       hasDraftGallery: Boolean(newGalleryDraft.file),
       newGalleryDraftTitle: newGalleryDraft.title,
       newGalleryDraftVisible: newGalleryDraft.is_visible,
@@ -365,6 +369,7 @@ export default function AdminPage() {
       entourageMembers,
       pendingDressCodeFiles,
       pendingContentFiles,
+      pendingCoupleFiles,
       newGalleryDraft.file,
       newGalleryDraft.title,
       newGalleryDraft.is_visible,
@@ -420,13 +425,14 @@ export default function AdminPage() {
         sort_order: row.sort_order,
       })));
       if (Object.keys(pendingContentFiles).length > 0) dirty.push('Hero/Venue Draft Uploads');
+      if (Object.keys(pendingCoupleFiles).length > 0) dirty.push('Couple Draft Uploads');
       if (Object.keys(pendingDressCodeFiles).length > 0) dirty.push('Dress Code Draft Uploads');
       if (newGalleryDraft.file) dirty.push('New Gallery Draft');
       return Array.from(new Set(dirty));
     } catch {
       return ['Unsaved changes'];
     }
-  }, [savedSnapshot, hasUnsavedChanges, couple, details, sections, events, entourageMembers, faqs, gallery, pendingContentFiles, pendingDressCodeFiles, newGalleryDraft.file]);
+  }, [savedSnapshot, hasUnsavedChanges, couple, details, sections, events, entourageMembers, faqs, gallery, pendingContentFiles, pendingCoupleFiles, pendingDressCodeFiles, newGalleryDraft.file]);
   const dirtyLabelSet = useMemo(() => new Set(dirtyFieldLabels), [dirtyFieldLabels]);
   const hasDirtyLabel = (label: string) => dirtyLabelSet.has(label);
   const isCoreFieldDirty = (field: keyof CoupleRow | keyof DetailRow) => {
@@ -526,10 +532,13 @@ export default function AdminPage() {
       setEntourageMembers((saved.entourage || []) as EntourageRow[]);
       setPendingDressCodeFiles({});
       setPendingContentFiles({});
+      setPendingCoupleFiles({});
       Object.values(dressCodePreviewUrls).forEach((url) => url && URL.revokeObjectURL(url));
       Object.values(contentPreviewUrls).forEach((url) => url && URL.revokeObjectURL(url));
+      Object.values(couplePreviewUrls).forEach((url) => url && URL.revokeObjectURL(url));
       setDressCodePreviewUrls({});
       setContentPreviewUrls({});
+      setCouplePreviewUrls({});
       if (newGalleryDraft.previewUrl) URL.revokeObjectURL(newGalleryDraft.previewUrl);
       setNewGalleryDraft({ file: null, previewUrl: '', title: '', is_visible: true });
     } catch {
@@ -818,8 +827,10 @@ export default function AdminPage() {
     setEntourageMembers(nextEntourage);
     setPendingDressCodeFiles({});
     setPendingContentFiles({});
+    setPendingCoupleFiles({});
     setDressCodePreviewUrls({});
     setContentPreviewUrls({});
+    setCouplePreviewUrls({});
     if (newGalleryDraft.previewUrl) URL.revokeObjectURL(newGalleryDraft.previewUrl);
     setNewGalleryDraft({ file: null, previewUrl: '', title: '', is_visible: true });
     setSavedSnapshot(
@@ -843,6 +854,7 @@ export default function AdminPage() {
         entourage: nextEntourage.map((row) => ({ id: row.id, name: row.name, role: row.role, group_name: row.group_name, sort_order: row.sort_order, is_visible: row.is_visible })),
         pendingDressCodeFiles: [],
         pendingContentFiles: [],
+        pendingCoupleFiles: [],
         hasDraftGallery: false,
         newGalleryDraftTitle: '',
         newGalleryDraftVisible: true,
@@ -962,9 +974,29 @@ export default function AdminPage() {
   const saveWedding = async () => {
     if (!selectedWeddingId) return;
     await ensureSections(selectedWeddingId);
+    let nextCouple = { ...couple };
+    const oldBrideImage = couple.bride_image;
+    const oldGroomImage = couple.groom_image;
+
+    if (pendingCoupleFiles.bride) {
+      try {
+        nextCouple.bride_image = await uploadAsset(pendingCoupleFiles.bride, 'content');
+      } catch (e) {
+        notify(`Bride image upload failed: ${(e as Error).message}`, 'error');
+        return;
+      }
+    }
+    if (pendingCoupleFiles.groom) {
+      try {
+        nextCouple.groom_image = await uploadAsset(pendingCoupleFiles.groom, 'content');
+      } catch (e) {
+        notify(`Groom image upload failed: ${(e as Error).message}`, 'error');
+        return;
+      }
+    }
 
     const [coupleSave, detailsSave] = await Promise.all([
-      supabase.from('wedding_couples').upsert({ wedding_id: selectedWeddingId, ...couple }),
+      supabase.from('wedding_couples').upsert({ wedding_id: selectedWeddingId, ...nextCouple }),
       supabase.from('wedding_details').upsert({ wedding_id: selectedWeddingId, ...details }),
     ]);
 
@@ -972,6 +1004,18 @@ export default function AdminPage() {
       notify(`Save failed: ${coupleSave.error?.message || detailsSave.error?.message}`, 'error');
       return;
     }
+    if (pendingCoupleFiles.bride && oldBrideImage && oldBrideImage !== nextCouple.bride_image) {
+      await deleteStorageObjectByPublicUrl(oldBrideImage);
+    }
+    if (pendingCoupleFiles.groom && oldGroomImage && oldGroomImage !== nextCouple.groom_image) {
+      await deleteStorageObjectByPublicUrl(oldGroomImage);
+    }
+    setCouple(nextCouple);
+    setPendingCoupleFiles({});
+    setCouplePreviewUrls((prev) => {
+      Object.values(prev).forEach((url) => url && URL.revokeObjectURL(url));
+      return {};
+    });
     refreshPreview();
     notify('Wedding details saved.');
     await loadWeddingData(selectedWeddingId);
@@ -1118,6 +1162,16 @@ export default function AdminPage() {
       return { ...prev, [slot]: URL.createObjectURL(file) };
     });
     notify('Image selected. Click Save to upload and apply.');
+  };
+
+  const setCoupleDraftFile = (file: File, slot: CoupleImageSlot) => {
+    setPendingCoupleFiles((prev) => ({ ...prev, [slot]: file }));
+    setCouplePreviewUrls((prev) => {
+      const previousUrl = prev[slot];
+      if (previousUrl) URL.revokeObjectURL(previousUrl);
+      return { ...prev, [slot]: URL.createObjectURL(file) };
+    });
+    notify(`Selected ${slot} image. Click Save Wedding to upload and apply.`);
   };
 
   const saveContentImageSlot = async (slot: ContentImageSlot) => {
@@ -1711,6 +1765,78 @@ export default function AdminPage() {
                 <input value={couple.groom_name} onChange={(e) => setCouple((p) => ({ ...p, groom_name: e.target.value }))} placeholder="Groom Name" className="w-full px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isCoreFieldDirty('groom_name') ? '#DC2626' : '#E8D5B7'}` }} />
               </div>
               <div>
+                <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Bride Details</label>
+                <textarea
+                  rows={2}
+                  value={couple.bride_nickname}
+                  onChange={(e) => setCouple((p) => ({ ...p, bride_nickname: e.target.value }))}
+                  placeholder="Bride details / short bio"
+                  className="w-full px-3 py-2 rounded-lg"
+                  style={{ border: `1.5px solid ${isCoreFieldDirty('bride_nickname') ? '#DC2626' : '#E8D5B7'}` }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Groom Details</label>
+                <textarea
+                  rows={2}
+                  value={couple.groom_nickname}
+                  onChange={(e) => setCouple((p) => ({ ...p, groom_nickname: e.target.value }))}
+                  placeholder="Groom details / short bio"
+                  className="w-full px-3 py-2 rounded-lg"
+                  style={{ border: `1.5px solid ${isCoreFieldDirty('groom_nickname') ? '#DC2626' : '#E8D5B7'}` }}
+                />
+              </div>
+              <div className="p-3 rounded-lg" style={{ border: `1px solid ${hasDirtyLabel('Couple Draft Uploads') ? '#DC2626' : '#E8D5B7'}` }}>
+                <label className="block text-xs mb-2" style={{ color: '#6B5744' }}>Bride Image</label>
+                <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] gap-3">
+                  <div className="rounded-lg overflow-hidden" style={{ border: '1px solid #E8D5B7', background: '#fff' }}>
+                    {(couplePreviewUrls.bride || couple.bride_image) ? (
+                      <img src={couplePreviewUrls.bride || couple.bride_image} alt="Bride preview" className="w-full h-24 object-cover" />
+                    ) : (
+                      <p className="text-xs px-3 py-6" style={{ color: '#8B7355' }}>No image yet.</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <input
+                      value={couple.bride_image}
+                      onChange={(e) => setCouple((p) => ({ ...p, bride_image: e.target.value }))}
+                      placeholder="Bride image URL"
+                      className="w-full px-3 py-2 rounded-lg"
+                      style={{ border: `1.5px solid ${isCoreFieldDirty('bride_image') ? '#DC2626' : '#E8D5B7'}` }}
+                    />
+                    <label className="text-sm inline-flex items-center gap-2 px-3 py-2 rounded-lg w-fit" style={{ border: '1.5px solid #E8D5B7' }}>
+                      <Upload className="w-4 h-4" />
+                      <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && setCoupleDraftFile(e.target.files[0], 'bride')} />
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div className="p-3 rounded-lg" style={{ border: `1px solid ${hasDirtyLabel('Couple Draft Uploads') ? '#DC2626' : '#E8D5B7'}` }}>
+                <label className="block text-xs mb-2" style={{ color: '#6B5744' }}>Groom Image</label>
+                <div className="grid grid-cols-1 md:grid-cols-[150px_1fr] gap-3">
+                  <div className="rounded-lg overflow-hidden" style={{ border: '1px solid #E8D5B7', background: '#fff' }}>
+                    {(couplePreviewUrls.groom || couple.groom_image) ? (
+                      <img src={couplePreviewUrls.groom || couple.groom_image} alt="Groom preview" className="w-full h-24 object-cover" />
+                    ) : (
+                      <p className="text-xs px-3 py-6" style={{ color: '#8B7355' }}>No image yet.</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <input
+                      value={couple.groom_image}
+                      onChange={(e) => setCouple((p) => ({ ...p, groom_image: e.target.value }))}
+                      placeholder="Groom image URL"
+                      className="w-full px-3 py-2 rounded-lg"
+                      style={{ border: `1.5px solid ${isCoreFieldDirty('groom_image') ? '#DC2626' : '#E8D5B7'}` }}
+                    />
+                    <label className="text-sm inline-flex items-center gap-2 px-3 py-2 rounded-lg w-fit" style={{ border: '1.5px solid #E8D5B7' }}>
+                      <Upload className="w-4 h-4" />
+                      <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && setCoupleDraftFile(e.target.files[0], 'groom')} />
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div>
                 <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Wedding Date</label>
                 <input
                   type="date"
@@ -1861,7 +1987,6 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                   <p className="font-serif" style={{ color: '#2C1810' }}>{section.name}</p>
-                  <p className="text-xs" style={{ color: '#8B7355' }}>{section.section_key}</p>
                   </div>
                   <button
                     onClick={() =>
@@ -1929,14 +2054,13 @@ export default function AdminPage() {
                         </label>
                         <input
                           value={getEffectiveSectionContent(section)}
-                          onChange={(e) =>
-                            setSections((prev) =>
-                              prev.map((row) => (row.id === section.id ? { ...row, content_text: e.target.value } : row)),
-                            )
-                          }
+                          readOnly
                           className="w-full px-3 py-2 rounded-lg"
-                          style={{ border: '1.5px solid #E8D5B7' }}
+                          style={{ border: '1.5px solid #E8D5B7', background: '#F8F4EC', color: '#8B7355' }}
                         />
+                        <p className="mt-1 text-xs" style={{ color: '#8B7355' }}>
+                          This is auto-generated from Bride Name and Groom Name in Core.
+                        </p>
                       </div>
                     )}
                     {managedInSeparateTab(section.section_key) && section.section_key !== 'hero' && (

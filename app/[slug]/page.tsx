@@ -1,4 +1,5 @@
 import React from 'react';
+import { notFound } from 'next/navigation';
 import RSVPForm from '@/components/RSVPForm';
 import FallingText from '@/components/FallingText';
 import ScrollReveal from '@/components/ScrollReveal';
@@ -35,6 +36,9 @@ function ProgrammeIcon({ icon }: { icon: 'heart' | 'clock' | 'camera' | 'music' 
 
 export default async function WeddingBySlugPage({ params }: { params: { slug: string } }) {
   const site = await getWeddingSiteData(params.slug);
+  if (!site.found) {
+    notFound();
+  }
   const content = site.content;
   const templateKey = (site.wedding.theme_key || 'classic_grid').trim();
   const THEMES = {
@@ -133,6 +137,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
   const isDuplicateHeading = (eyebrow: string, title: string) =>
     eyebrow.trim().toLowerCase() === title.trim().toLowerCase();
   const coupleSubtitle = sectionText('couple_info', site.wedding.title);
+  const showCoupleSubtitle = isSectionEnabled('couple_info');
   const sectionOrder = ['invitation', 'couple_info', 'story', 'event_details', 'gallery', 'programme', 'entourage', 'venue', 'faq', 'gift_registry', 'dress_code', 'rsvp'];
   const nextAfterInvitation = sectionOrder.slice(sectionOrder.indexOf('invitation') + 1).find((key) => isSectionEnabled(key)) || 'rsvp';
   const heroVisible =
@@ -340,15 +345,35 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
 
       {isSectionEnabled('couple_info') && (
         <section id="couple_info" className="px-6 py-14 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrs('couple_info', 'reveal-fade')} style={{ background: CREAM }}>
-          <div style={{ maxWidth: 760, margin: '0 auto' }}>
+          <div style={{ maxWidth: 980, margin: '0 auto' }}>
             <h2 className="font-serif mb-3" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 300, color: GOLD }}>
               {sectionName('couple_info', 'Couple Info')}
             </h2>
-            {!!coupleSubtitle && (
-              <p className="font-sans-body" style={{ color: BROWN_MID }}>
+            {showCoupleSubtitle && !!coupleSubtitle && (
+              <p className="font-sans-body mb-8" style={{ color: BROWN_MID }}>
                 {coupleSubtitle}
               </p>
             )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+              <div className="rounded-2xl overflow-hidden" style={{ background: theme.card, border: `1px solid ${BORDER}`, boxShadow: theme.cardShadow }}>
+                <div style={{ background: '#F7F0E4' }}>
+                  <img src={content.brideImageUrl || content.heroImageUrl} alt={content.brideName} className="w-full h-72 object-cover" />
+                </div>
+                <div className="p-6 text-center">
+                  <h3 className="font-serif" style={{ color: BROWN_DARK, fontSize: 'clamp(1.4rem, 3vw, 2rem)' }}>{content.brideName}</h3>
+                  <p className="font-sans-body mt-2" style={{ color: BROWN_MID }}>{content.brideDetails}</p>
+                </div>
+              </div>
+              <div className="rounded-2xl overflow-hidden" style={{ background: theme.card, border: `1px solid ${BORDER}`, boxShadow: theme.cardShadow }}>
+                <div style={{ background: '#F7F0E4' }}>
+                  <img src={content.groomImageUrl || content.heroImageUrl} alt={content.groomName} className="w-full h-72 object-cover" />
+                </div>
+                <div className="p-6 text-center">
+                  <h3 className="font-serif" style={{ color: BROWN_DARK, fontSize: 'clamp(1.4rem, 3vw, 2rem)' }}>{content.groomName}</h3>
+                  <p className="font-sans-body mt-2" style={{ color: BROWN_MID }}>{content.groomDetails}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       )}
