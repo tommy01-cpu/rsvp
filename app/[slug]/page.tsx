@@ -130,6 +130,8 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
   });
   const sectionName = (key: string, fallback: string) =>
     site.sectionList.find((section) => section.section_key === key)?.name || fallback;
+  const isDuplicateHeading = (eyebrow: string, title: string) =>
+    eyebrow.trim().toLowerCase() === title.trim().toLowerCase();
   const coupleSubtitle = sectionText('couple_info', site.wedding.title);
   const sectionOrder = ['invitation', 'couple_info', 'story', 'event_details', 'gallery', 'programme', 'entourage', 'venue', 'faq', 'gift_registry', 'dress_code', 'rsvp'];
   const nextAfterInvitation = sectionOrder.slice(sectionOrder.indexOf('invitation') + 1).find((key) => isSectionEnabled(key)) || 'rsvp';
@@ -339,11 +341,8 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       {isSectionEnabled('couple_info') && (
         <section id="couple_info" className="px-6 py-14 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrs('couple_info', 'reveal-fade')} style={{ background: CREAM }}>
           <div style={{ maxWidth: 760, margin: '0 auto' }}>
-            <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
-              {sectionName('couple_info', 'Couple')}
-            </p>
-            <h2 className="font-serif mb-3" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 300, color: BROWN_DARK }}>
-              {content.brideName} &amp; {content.groomName}
+            <h2 className="font-serif mb-3" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 300, color: GOLD }}>
+              {sectionName('couple_info', 'Couple Info')}
             </h2>
             {!!coupleSubtitle && (
               <p className="font-sans-body" style={{ color: BROWN_MID }}>
@@ -357,10 +356,12 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       {isSectionEnabled('story') && (
         <section id="story" className="px-6 py-20 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrs('story', 'reveal-fade')} style={{ background: CREAM_SECTION }}>
           <div style={{ maxWidth: 760, margin: '0 auto' }}>
-            <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
-              {sectionName('story', 'Our Story')}
-            </p>
-            <h2 className="font-serif mb-6" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 300, color: BROWN_DARK }}>
+            {!isDuplicateHeading(sectionName('story', 'Our Story'), sectionName('story', 'Our Story')) && (
+              <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
+                {sectionName('story', 'Our Story')}
+              </p>
+            )}
+            <h2 className="font-serif mb-6" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 300, color: GOLD }}>
               {sectionName('story', 'Our Story')}
             </h2>
             <p className="font-sans-body leading-relaxed" style={{ color: BROWN_MID }}>
@@ -377,14 +378,10 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
               <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
                 {sectionName('event_details', 'Event Details')}
               </p>
-              <h2 className="font-serif" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 300, color: BROWN_DARK }}>
+              <h2 className="font-serif" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 300, color: GOLD }}>
                 {content.eventTitle}
               </h2>
-              {!!sectionText('event_details') && (
-                <p className="font-sans-body mt-3" style={{ color: BROWN_MID }}>
-                  {sectionText('event_details')}
-                </p>
-              )}
+              
             </div>
 
             {isStorybook || isPolaroid ? (
@@ -464,17 +461,10 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       {isSectionEnabled('programme') && (
         <section id="programme" className="px-6 py-20 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrs('programme', 'reveal-fade')} style={{ background: CREAM, position: 'relative', zIndex: 10 }}>
           <div style={{ maxWidth: 680, margin: '0 auto' }}>
-            <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
-              {sectionName('programme', 'The Day')}
-            </p>
-            <h2 className="font-serif mb-12" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 300, color: BROWN_DARK }}>
+            <h2 className="font-serif mb-12" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 300, color: GOLD }}>
               {content.programmeTitle}
             </h2>
-            {!!sectionText('programme') && (
-              <p className="font-sans-body mb-6" style={{ color: BROWN_MID }}>
-                {sectionText('programme')}
-              </p>
-            )}
+            
 
             {isClassic ? (
               <div className="space-y-0">
@@ -586,10 +576,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       {isSectionEnabled('entourage') && (
         <section id="entourage" className="px-6 py-20 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrs('entourage', 'reveal-fade')} style={{ background: CREAM }}>
           <div style={{ maxWidth: 980, margin: '0 auto' }}>
-            <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
-              {sectionName('entourage', 'Wedding Entourage')}
-            </p>
-            <h2 className="font-serif mb-8" style={{ fontSize: 'clamp(1.9rem, 4vw, 3rem)', fontWeight: 300, color: BROWN_DARK }}>
+            <h2 className="font-serif mb-8" style={{ fontSize: 'clamp(1.9rem, 4vw, 3rem)', fontWeight: 300, color: GOLD }}>
               {content.entourageTitle}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 items-start">
@@ -822,10 +809,12 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       {isSectionEnabled('gift_registry') && (
         <section id="gift_registry" className="px-6 py-20 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrs('gift_registry', 'reveal-fade')} style={{ background: CREAM_SECTION }}>
           <div style={{ maxWidth: 760, margin: '0 auto' }}>
-            <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
-              {sectionName('gift_registry', 'Gift Registry')}
-            </p>
-            <h2 className="font-serif mb-4" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 300, color: BROWN_DARK }}>
+            {!isDuplicateHeading(sectionName('gift_registry', 'Gift Registry'), site.giftRegistry.title) && (
+              <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
+                {sectionName('gift_registry', 'Gift Registry')}
+              </p>
+            )}
+            <h2 className="font-serif mb-4" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 300, color: GOLD }}>
               {site.giftRegistry.title}
             </h2>
             <p className="font-sans-body leading-relaxed" style={{ color: BROWN_MID }}>
@@ -838,10 +827,12 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
       {isSectionEnabled('dress_code') && (
         <section id="dress_code" className="px-6 py-20 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrs('dress_code', 'reveal-fade')} style={{ background: CREAM }}>
           <div style={{ maxWidth: 760, margin: '0 auto' }}>
-            <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
-              {sectionName('dress_code', 'Dress Code')}
-            </p>
-            <h2 className="font-serif mb-4" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 300, color: BROWN_DARK }}>
+            {!isDuplicateHeading(sectionName('dress_code', 'Dress Code'), site.dressCode.title) && (
+              <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
+                {sectionName('dress_code', 'Dress Code')}
+              </p>
+            )}
+            <h2 className="font-serif mb-4" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 300, color: GOLD }}>
               {site.dressCode.title}
             </h2>
             <p className="font-sans-body leading-relaxed" style={{ color: BROWN_MID }}>
@@ -879,7 +870,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
               <p className="font-sans-body text-xs tracking-[0.35em] uppercase mb-3" style={{ color: GOLD }}>
                 {sectionName('rsvp', 'RSVP')}
               </p>
-              <h2 className="font-serif mb-4" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 300, color: BROWN_DARK }}>
+              <h2 className="font-serif mb-4" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 300, color: GOLD }}>
                 {content.rsvpTitle}
               </h2>
               <p className="font-sans-body text-sm" style={{ color: BROWN_LIGHT }}>
