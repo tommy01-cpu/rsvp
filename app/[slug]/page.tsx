@@ -1,5 +1,4 @@
 import React from 'react';
-import { notFound } from 'next/navigation';
 import RSVPForm from '@/components/RSVPForm';
 import FallingText from '@/components/FallingText';
 import ScrollReveal from '@/components/ScrollReveal';
@@ -37,7 +36,22 @@ function ProgrammeIcon({ icon }: { icon: 'heart' | 'clock' | 'camera' | 'music' 
 export default async function WeddingBySlugPage({ params }: { params: { slug: string } }) {
   const site = await getWeddingSiteData(params.slug);
   if (!site.found) {
-    notFound();
+    return (
+      <main className="min-h-screen flex items-center justify-center px-6 py-16" style={{ background: '#F7F3EA', color: '#2F2416' }}>
+        <div className="w-full max-w-xl rounded-3xl border p-10 text-center" style={{ borderColor: '#DDCBA8', background: '#FFFDF8' }}>
+          <p className="text-xs uppercase tracking-[0.35em]" style={{ color: '#B4975F' }}>404</p>
+          <h1 className="font-serif mt-3" style={{ fontSize: 'clamp(2rem,5vw,3rem)' }}>Page Not Found</h1>
+          <p className="mt-4" style={{ color: '#5F4D36' }}>This wedding page does not exist.</p>
+          <a
+            href="/"
+            className="inline-block mt-8 px-5 py-2.5 rounded-xl text-sm font-semibold"
+            style={{ background: '#B4975F', color: '#fff' }}
+          >
+            Go to Home
+          </a>
+        </div>
+      </main>
+    );
   }
   const content = site.content;
   const templateKey = (site.wedding.theme_key || 'classic_grid').trim();

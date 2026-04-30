@@ -256,6 +256,7 @@ export default function AdminPage() {
   const [accessScope, setAccessScope] = useState<AccessScope>({ role: 'admin', username: '', wedding_id: null });
 
   const [newWedding, setNewWedding] = useState({ slug: '', title: '' });
+  const [editWedding, setEditWedding] = useState({ slug: '', title: '' });
   const [newUser, setNewUser] = useState({ wedding_id: '', username: '', password: '' });
   const [heroMeta, setHeroMeta] = useState<ImageMeta | null>(null);
   const [venueMeta, setVenueMeta] = useState<ImageMeta | null>(null);
@@ -869,6 +870,14 @@ export default function AdminPage() {
   }, [selectedWeddingId]);
 
   useEffect(() => {
+    if (!selectedWedding) {
+      setEditWedding({ slug: '', title: '' });
+      return;
+    }
+    setEditWedding({ slug: selectedWedding.slug || '', title: selectedWedding.title || '' });
+  }, [selectedWeddingId, selectedWedding?.slug, selectedWedding?.title]);
+
+  useEffect(() => {
     const syncMissingSections = async () => {
       if (tab !== 'sections' || !selectedWeddingId) return;
       const insertedMissingSections = await ensureSections(selectedWeddingId, sections);
@@ -917,6 +926,48 @@ export default function AdminPage() {
     setSelectedWeddingId(data.id);
     refreshPreview();
     notify('Wedding created.');
+    await loadWeddings();
+  };
+
+  const saveWeddingMeta = async () => {
+    if (accessScope.role !== 'admin') return;
+    if (!selectedWeddingId) return;
+    const normalizedSlug = editWedding.slug.trim().toLowerCase().replace(/\s+/g, '-');
+    const normalizedTitle = editWedding.title.trim();
+    if (!normalizedSlug || !normalizedTitle) {
+      notify('Slug and wedding title are required.', 'error');
+      return;
+    }
+
+    const { error: updateError } = await supabase
+      .from('weddings')
+      .update({ slug: normalizedSlug, title: normalizedTitle })
+      .eq('id', selectedWeddingId);
+
+    if (updateError) {
+      notify(`Update wedding failed: ${updateError.message}`, 'error');
+      return;
+    }
+    notify('Wedding updated.');
+    await loadWeddings();
+  };
+
+  const deleteWedding = async () => {
+    if (accessScope.role !== 'admin') return;
+    if (!selectedWeddingId || !selectedWedding) return;
+    const ok = window.confirm(`Delete wedding "${selectedWedding.title}"? This cannot be undone.`);
+    if (!ok) return;
+
+    const { error: deleteError } = await supabase.from('weddings').delete().eq('id', selectedWeddingId);
+    if (deleteError) {
+      notify(`Delete wedding failed: ${deleteError.message}`, 'error');
+      return;
+    }
+
+    const remaining = weddings.filter((w) => w.id !== selectedWeddingId);
+    const nextId = remaining[0]?.id || '';
+    setSelectedWeddingId(nextId);
+    notify('Wedding deleted.');
     await loadWeddings();
   };
 
@@ -1667,6 +1718,43 @@ export default function AdminPage() {
               >
                 <Save className="w-4 h-4" /> Save Theme
               </button>
+            </div>
+          )}
+          {accessScope.role === 'admin' && selectedWedding && (
+            <div className="mt-3 p-3 rounded-lg space-y-2" style={{ border: '1px solid #E8D5B7', background: '#FFFDF9' }}>
+              <p className="text-sm font-medium" style={{ color: '#6B5744' }}>Edit Selected Wedding</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <input
+                  value={editWedding.slug}
+                  onChange={(e) => setEditWedding((prev) => ({ ...prev, slug: e.target.value }))}
+                  placeholder="wedding-slug"
+                  className="px-3 py-2 rounded-lg"
+                  style={{ border: '1.5px solid #E8D5B7' }}
+                />
+                <input
+                  value={editWedding.title}
+                  onChange={(e) => setEditWedding((prev) => ({ ...prev, title: e.target.value }))}
+                  placeholder="Wedding title"
+                  className="px-3 py-2 rounded-lg"
+                  style={{ border: '1.5px solid #E8D5B7' }}
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={saveWeddingMeta}
+                  className="px-4 py-2 rounded-lg text-sm inline-flex items-center gap-2"
+                  style={{ background: '#C9A96E', color: '#fff' }}
+                >
+                  <Save className="w-4 h-4" /> Save Wedding Info
+                </button>
+                <button
+                  onClick={deleteWedding}
+                  className="px-4 py-2 rounded-lg text-sm inline-flex items-center gap-2"
+                  style={{ background: '#FEE2E2', color: '#B91C1C' }}
+                >
+                  <Trash2 className="w-4 h-4" /> Delete Wedding
+                </button>
+              </div>
             </div>
           )}
           {accessScope.role === 'admin' && (
