@@ -212,6 +212,7 @@ const EVENT_ICON_OPTIONS = ['heart', 'clock', 'camera', 'music', 'utensils', 'ca
 const ENTOURAGE_GROUP_OPTIONS = [
   'groom_parents',
   'bride_parents',
+  'officiating_official',
   'best_man',
   'maid_of_honor',
   'principal_sponsors_male',
@@ -223,6 +224,11 @@ const ENTOURAGE_GROUP_OPTIONS = [
   'ring_bearer',
   'flower',
 ];
+
+const formatSelectLabel = (value: string) =>
+  value
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 
 const TEMPLATE_OPTIONS = [
   { key: 'classic_grid', label: 'Champagne Gold' },
@@ -2322,7 +2328,7 @@ export default function AdminPage() {
                 style={{ border: '1.5px solid #E8D5B7' }}
               />
               <select value={newEvent.icon} onChange={(e) => setNewEvent((p) => ({ ...p, icon: e.target.value }))} className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }}>
-                {EVENT_ICON_OPTIONS.map((icon) => <option key={icon} value={icon}>{icon}</option>)}
+                {EVENT_ICON_OPTIONS.map((icon) => <option key={icon} value={icon}>{formatSelectLabel(icon)}</option>)}
               </select>
             </div>
             <div className="flex items-center gap-2">
@@ -2347,7 +2353,7 @@ export default function AdminPage() {
                     style={{ border: `1.5px solid ${isEventFieldDirty(event.id, 'time_label') ? '#DC2626' : '#E8D5B7'}` }}
                   />
                   <select value={event.icon} onChange={(e) => setEvents((prev) => prev.map((item) => (item.id === event.id ? { ...item, icon: e.target.value } : item)))} className="px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isEventFieldDirty(event.id, 'icon') ? '#DC2626' : '#E8D5B7'}` }}>
-                    {EVENT_ICON_OPTIONS.map((icon) => <option key={icon} value={icon}>{icon}</option>)}
+                    {EVENT_ICON_OPTIONS.map((icon) => <option key={icon} value={icon}>{formatSelectLabel(icon)}</option>)}
                   </select>
                 </div>
                 <div className="flex items-center gap-2">
@@ -2378,7 +2384,7 @@ export default function AdminPage() {
               <input value={newEntourage.name} onChange={(e) => setNewEntourage((p) => ({ ...p, name: e.target.value }))} placeholder="Name" className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
               
               <select value={newEntourage.group_name} onChange={(e) => setNewEntourage((p) => ({ ...p, group_name: e.target.value }))} className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }}>
-                {ENTOURAGE_GROUP_OPTIONS.map((group) => <option key={group} value={group}>{group}</option>)}
+                {ENTOURAGE_GROUP_OPTIONS.map((group) => <option key={group} value={group}>{formatSelectLabel(group)}</option>)}
               </select>
               <input type="number" value={newEntourage.sort_order} onChange={(e) => setNewEntourage((p) => ({ ...p, sort_order: Number(e.target.value) || 0 }))} placeholder="Sort order" className="px-3 py-2 rounded-lg" style={{ border: '1.5px solid #E8D5B7' }} />
             </div>
@@ -2394,7 +2400,7 @@ export default function AdminPage() {
                   <input value={member.name} onChange={(e) => setEntourageMembers((prev) => prev.map((item) => (item.id === member.id ? { ...item, name: e.target.value } : item)))} className="px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isEntourageFieldDirty(member.id, 'name') ? '#DC2626' : '#E8D5B7'}` }} />
                   
                   <select value={member.group_name} onChange={(e) => setEntourageMembers((prev) => prev.map((item) => (item.id === member.id ? { ...item, group_name: e.target.value } : item)))} className="px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isEntourageFieldDirty(member.id, 'group_name') ? '#DC2626' : '#E8D5B7'}` }}>
-                    {ENTOURAGE_GROUP_OPTIONS.map((group) => <option key={group} value={group}>{group}</option>)}
+                    {ENTOURAGE_GROUP_OPTIONS.map((group) => <option key={group} value={group}>{formatSelectLabel(group)}</option>)}
                   </select>
                   <input type="number" value={member.sort_order} onChange={(e) => setEntourageMembers((prev) => prev.map((item) => (item.id === member.id ? { ...item, sort_order: Number(e.target.value) || 0 } : item)))} className="px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isEntourageFieldDirty(member.id, 'sort_order') ? '#DC2626' : '#E8D5B7'}` }} />
                 </div>

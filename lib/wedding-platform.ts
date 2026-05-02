@@ -255,7 +255,7 @@ function buildContentFromRows(
       ...defaultWeddingContent.entourage,
       groomParents: byGroup('groom_parents'),
       brideParents: byGroup('bride_parents'),
-      officiatingMinister: firstRole('Officiating Minister'),
+      officiatingMinister: byGroup('officiating_official')[0] || firstRole('Officiating Minister'),
       principalSponsorsMale: byGroup('principal_sponsors_male'),
       principalSponsorsFemale: byGroup('principal_sponsors_female'),
       bestMan: byGroup('best_man')[0] || firstRole('Best Man'),

@@ -1,6 +1,6 @@
 # J7 Wedding CMS Design Prompt (5 Variants)
 
-Use this prompt to generate **5 different beautiful frontend/UI designs only** for my existing wedding CMS project, while keeping full compatibility with my current Next.js + Supabase data model.
+Use this prompt to generate **5 different beautiful frontend designs** for my existing wedding CMS project, while keeping full compatibility with my current Next.js + Supabase data model.
 
 ---
 
@@ -10,13 +10,6 @@ You are a senior frontend/product designer and Next.js engineer.
 
 I have an existing **Wedding CMS** project with a working admin panel and Supabase schema.  
 I want you to create **5 clearly different, beautiful design variants** for the public wedding page (`app/[slug]/page.tsx`) that use my existing data structure and section toggles.
-
-Important scope:
-- **Frontend/UI only**
-- **No database changes**
-- **No migration files**
-- **No new columns/tables**
-- **No backend/API/auth logic changes**
 
 ### Project Tech + Constraints
 
@@ -31,7 +24,6 @@ Important scope:
 - Keep existing animations compatible (`data-animate`, `data-anim-duration`, `data-anim-delay`).
 - Mobile-first and responsive; no broken text wrapping.
 - Keep image handling safe (`object-cover` / `object-contain` depending on section intent).
-- Only modify presentation layer (layout, spacing, typography, color, visual style, animation behavior in UI).
 
 ### Database Structure You Must Respect
 
@@ -108,33 +100,3 @@ For each variant, provide:
    - what CSS/Tailwind utilities to add
 5. **Accessibility + mobile checks**
 6. **Performance notes** (avoid layout shift, optimize heavy backgrounds/images)
-
-### Strict Guardrails (UI-Only)
-
-- Do not modify Supabase migrations.
-- Do not alter table structures or database constraints.
-- Do not add/remove backend data fields.
-- Do not change query contracts in a breaking way.
-- Keep all existing data mapping and section visibility logic working.
-
-### Implementation Request
-
-After presenting 5 variants, pick the strongest 1 and provide:
-
-- A concrete patch-ready code refactor plan for `app/[slug]/page.tsx`
-- Any required supporting style updates in `app/globals.css`
-- No database schema change, no migration, no backend refactor
-- Must remain backward compatible with existing admin data
-
-Important:
-- Do not invent new DB columns.
-- Do not break current section toggles or visibility logic.
-- Ensure content from `wedding_sections.content_text` still works as override/fallback where currently used.
-- Keep current RSVP flow and links intact.
-
----
-
-## Optional Add-On Prompt (If You Want Direct Code Next)
-
-After you finish the 5 designs, ask me which variant number I choose.  
-Then implement that variant directly in my existing files with minimal risk and keep all current features working.
