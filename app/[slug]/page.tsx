@@ -184,11 +184,11 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
     <main className="scroll-smooth" style={mainStyle}>
       {heroVisible && (
       <section id="hero" className="relative overflow-hidden" style={{ minHeight: '100svh' }}>
-        <div className="absolute inset-0">
+        <div className="absolute inset-0" style={{ background: BROWN_DARK }}>
           <img
             src={content.heroImageUrl}
             alt={`${content.brideName} and ${content.groomName}`}
-            className="w-full h-full object-cover hero-zoom"
+            className="w-full h-full object-cover hero-zoom hero-full-image-desktop"
           />
           <div
             className="absolute inset-0"

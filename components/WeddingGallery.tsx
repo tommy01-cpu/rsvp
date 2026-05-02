@@ -15,6 +15,15 @@ type WeddingGalleryProps = {
   animationDelayMs?: number;
 };
 
+type GalleryImageProps = {
+  src: string;
+  alt: string;
+  className?: string;
+  imageClassName?: string;
+  animAttrs?: Record<string, string>;
+  style?: React.CSSProperties;
+};
+
 function toTemplateKey(value?: string): GalleryTemplateKey {
   const key = (value || '').trim();
   if (key === 'masonry_moments') return key;
@@ -22,6 +31,26 @@ function toTemplateKey(value?: string): GalleryTemplateKey {
   if (key === 'polaroid_cards') return key;
   if (key === 'spotlight_stack') return key;
   return 'classic_grid';
+}
+
+function GalleryImage({
+  src,
+  alt,
+  className = '',
+  imageClassName = '',
+  animAttrs,
+  style,
+}: GalleryImageProps) {
+  return (
+    <div className={`relative overflow-hidden gallery-photo-frame ${className}`} style={style}>
+      <img
+        src={src}
+        alt={alt}
+        className={`w-full h-full object-cover reveal-on-scroll ${imageClassName}`}
+        {...animAttrs}
+      />
+    </div>
+  );
 }
 
 export default function WeddingGallery({
@@ -43,15 +72,15 @@ export default function WeddingGallery({
       <div className="overflow-x-auto py-2">
         <div className="flex gap-4 px-2 min-w-max">
           {images.map((src, i) => (
-            <div key={`${src}-${i}`} className="relative overflow-hidden rounded-xl" style={{ width: 320, height: 220 }}>
-              <img
-                src={src}
-                alt={`Wedding photo ${i + 1}`}
-                className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 reveal-on-scroll"
-                {...animAttrs(i)}
-              />
-              <div className="absolute inset-0" style={{ background: 'rgba(20,10,5,0.08)' }} />
-            </div>
+            <GalleryImage
+              key={`${src}-${i}`}
+              src={src}
+              alt={`Wedding photo ${i + 1}`}
+              className="rounded-xl"
+              imageClassName="transition-transform duration-700"
+              animAttrs={animAttrs(i)}
+              style={{ width: 320, height: 220 }}
+            />
           ))}
         </div>
       </div>
@@ -60,23 +89,18 @@ export default function WeddingGallery({
 
   if (style === 'masonry_moments') {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 px-3 md:px-0">
         {images.map((src, i) => {
           const isHero = i === 0;
           return (
-            <div
+            <GalleryImage
               key={`${src}-${i}`}
-              className={`relative overflow-hidden ${isHero ? 'md:col-span-2 md:row-span-2' : ''}`}
-              style={{ height: isHero ? 'min(58vw, 520px)' : 'min(28vw, 260px)' }}
-            >
-              <img
-                src={src}
-                alt={`Wedding photo ${i + 1}`}
-                className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 reveal-on-scroll"
-                {...animAttrs(i)}
-              />
-              <div className="absolute inset-0" style={{ background: 'rgba(20,10,5,0.08)' }} />
-            </div>
+              src={src}
+              alt={`Wedding photo ${i + 1}`}
+              className={`${isHero ? 'gallery-tile-masonry-hero md:col-span-2 md:row-span-2' : 'gallery-tile-masonry'}`}
+              imageClassName="transition-transform duration-700"
+              animAttrs={animAttrs(i)}
+            />
           );
         })}
       </div>
@@ -96,9 +120,12 @@ export default function WeddingGallery({
               border: '1px solid rgba(232,213,183,0.8)',
             }}
           >
-            <div className="relative overflow-hidden" style={{ height: 230 }}>
-              <img src={src} alt={`Wedding photo ${i + 1}`} className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
-            </div>
+            <GalleryImage
+              src={src}
+              alt={`Wedding photo ${i + 1}`}
+              className="gallery-tile-polaroid"
+              imageClassName="transition-transform duration-700"
+            />
           </div>
         ))}
       </div>
@@ -108,20 +135,14 @@ export default function WeddingGallery({
   if (style === 'spotlight_stack') {
     const [first, ...rest] = images;
     return (
-      <div className="px-2 py-2">
+      <div className="px-3 md:px-2 py-2">
         {first && (
-          <div className="relative overflow-hidden mb-3" style={{ height: 'min(62vw, 520px)' }}>
-            <img src={first} alt="Wedding photo 1" className="w-full h-full object-cover reveal-on-scroll" {...animAttrs(0)} />
-            <div className="absolute inset-0" style={{ background: 'rgba(20,10,5,0.08)' }} />
-          </div>
+          <GalleryImage src={first} alt="Wedding photo 1" className="gallery-tile-spotlight mb-3" animAttrs={animAttrs(0)} />
         )}
         {rest.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
             {rest.map((src, i) => (
-              <div key={`${src}-${i + 1}`} className="relative overflow-hidden" style={{ height: 170 }}>
-                <img src={src} alt={`Wedding photo ${i + 2}`} className="w-full h-full object-cover reveal-on-scroll" {...animAttrs(i + 1)} />
-                <div className="absolute inset-0" style={{ background: 'rgba(20,10,5,0.08)' }} />
-              </div>
+              <GalleryImage key={`${src}-${i + 1}`} src={src} alt={`Wedding photo ${i + 2}`} className="gallery-tile-small" animAttrs={animAttrs(i + 1)} />
             ))}
           </div>
         )}
@@ -130,19 +151,20 @@ export default function WeddingGallery({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3" style={{ minHeight: 'clamp(260px, 40vw, 480px)' }}>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 px-3 md:px-0">
       {images.map((src, i) => (
-        <div key={`${src}-${i}`} className="relative overflow-hidden" style={{ height: 'clamp(200px, 35vw, 480px)' }}>
-          <img
-            src={src}
-            alt={`Wedding photo ${i + 1}`}
-            className="w-full h-full object-cover transition-transform duration-700 hover:scale-105 reveal-on-scroll"
-            data-animate={i % 2 === 0 ? 'slide-in-left' : 'slide-in-right'}
-            data-anim-duration={String(Math.max(100, animationDurationMs))}
-            data-anim-delay={String(Math.max(0, animationDelayMs + i * 100))}
-          />
-          <div className="absolute inset-0" style={{ background: 'rgba(20,10,5,0.08)' }} />
-        </div>
+        <GalleryImage
+          key={`${src}-${i}`}
+          src={src}
+          alt={`Wedding photo ${i + 1}`}
+          className="gallery-tile-classic"
+          imageClassName="transition-transform duration-700"
+          animAttrs={{
+            'data-animate': i % 2 === 0 ? 'slide-in-left' : 'slide-in-right',
+            'data-anim-duration': String(Math.max(100, animationDurationMs)),
+            'data-anim-delay': String(Math.max(0, animationDelayMs + i * 100)),
+          }}
+        />
       ))}
     </div>
   );
