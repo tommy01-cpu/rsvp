@@ -61,6 +61,14 @@ export default function WeddingGallery({
   animationDelayMs = 0,
 }: WeddingGalleryProps) {
   const style = toTemplateKey(templateKey);
+  const count = images.length;
+  const adaptiveDesktopCols =
+    count >= 3
+      ? 'md:grid-cols-3'
+      : count === 2
+        ? 'md:grid-cols-2 md:max-w-5xl md:mx-auto'
+        : 'md:grid-cols-1 md:max-w-2xl md:mx-auto';
+
   const animAttrs = (index = 0) => ({
     'data-animate': animation,
     'data-anim-duration': String(Math.max(100, animationDurationMs)),
@@ -88,8 +96,9 @@ export default function WeddingGallery({
   }
 
   if (style === 'masonry_moments') {
+    const masonryCols = count >= 4 ? 'md:grid-cols-4' : count === 3 ? 'md:grid-cols-3' : count === 2 ? 'md:grid-cols-2 md:max-w-5xl md:mx-auto' : 'md:grid-cols-1 md:max-w-2xl md:mx-auto';
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 px-3 md:px-0">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${masonryCols} gap-2 px-3 md:px-0`}>
         {images.map((src, i) => {
           const isHero = i === 0;
           return (
@@ -140,7 +149,7 @@ export default function WeddingGallery({
           <GalleryImage src={first} alt="Wedding photo 1" className="gallery-tile-spotlight mb-3" animAttrs={animAttrs(0)} />
         )}
         {rest.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${rest.length >= 4 ? 'md:grid-cols-4' : rest.length === 3 ? 'md:grid-cols-3' : rest.length === 2 ? 'md:grid-cols-2 md:max-w-5xl md:mx-auto' : 'md:grid-cols-1 md:max-w-2xl md:mx-auto'} gap-2`}>
             {rest.map((src, i) => (
               <GalleryImage key={`${src}-${i + 1}`} src={src} alt={`Wedding photo ${i + 2}`} className="gallery-tile-small" animAttrs={animAttrs(i + 1)} />
             ))}
@@ -151,7 +160,7 @@ export default function WeddingGallery({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 px-3 md:px-0">
+    <div className={`grid grid-cols-1 ${adaptiveDesktopCols} gap-2 px-3 md:px-0`}>
       {images.map((src, i) => (
         <GalleryImage
           key={`${src}-${i}`}

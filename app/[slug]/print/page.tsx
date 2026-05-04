@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, MapPin, Heart } from 'lucide-react';
+import { Calendar, Clock, MapPin, Heart, Camera, Music, Utensils } from 'lucide-react';
 import { getWeddingSiteData } from '@/lib/wedding-platform';
 import InvitationPrintToolbar from '@/components/InvitationPrintToolbar';
 
@@ -75,8 +75,17 @@ async function toPrintableImageSrc(input?: string): Promise<string> {
   }
 }
 
-function chunkTop(items: string[] | undefined, limit = 8): string[] {
-  return (items || []).filter(Boolean).slice(0, limit);
+function cleanList(items: string[] | undefined): string[] {
+  return (items || []).filter(Boolean);
+}
+
+function ProgrammeIcon({ icon }: { icon: 'heart' | 'clock' | 'camera' | 'music' | 'utensils' }) {
+  const style = { width: 11, height: 11 } as const;
+  if (icon === 'clock') return <Clock style={style} />;
+  if (icon === 'camera') return <Camera style={style} />;
+  if (icon === 'music') return <Music style={style} />;
+  if (icon === 'utensils') return <Utensils style={style} />;
+  return <Heart style={style} />;
 }
 
 export default async function WeddingPrintPage({ params, searchParams }: PrintPageProps) {
@@ -99,32 +108,92 @@ export default async function WeddingPrintPage({ params, searchParams }: PrintPa
   const isFoldLayout = layout === 'fold' || isHalfLayout;
 
   const heroRawImage = content.heroImageUrl || site.gallery[0]?.image_url || content.venueImageUrl || '';
-  const venueRawImage = content.venueImageUrl || heroRawImage;
+  const venueRawImage = content.venueImageUrl || '';
   const heroPrintImage = await toPrintableImageSrc(heroRawImage);
   const venuePrintImage = await toPrintableImageSrc(venueRawImage);
+  const dateCard = content.eventDetails.find((item) => item.title.toLowerCase() === 'date');
+  const timeCard = content.eventDetails.find((item) => item.title.toLowerCase() === 'time');
+  const venueCard = content.eventDetails.find((item) => item.title.toLowerCase() === 'venue');
 
   const sectionText = (key: string, fallback = '') => (site.sectionConfig[key]?.content || '').trim() || fallback;
-  const programmeTop = (content.programmeItems || []).slice(0, 6);
-  const sponsorMale = chunkTop(content.entourage.principalSponsorsMale, 8);
-  const sponsorFemale = chunkTop(content.entourage.principalSponsorsFemale, 8);
-  const groomsmen = chunkTop(content.entourage.groomsmen, 4);
-  const bridesmaid = chunkTop(content.entourage.bridesmaid, 4);
+  const programmeTop = content.programmeItems || [];
+  const sponsorMale = cleanList(content.entourage.principalSponsorsMale);
+  const sponsorFemale = cleanList(content.entourage.principalSponsorsFemale);
+  const groomsmen = cleanList(content.entourage.groomsmen);
+  const bridesmaid = cleanList(content.entourage.bridesmaid);
+  const groomParents = cleanList(content.entourage.groomParents);
+  const brideParents = cleanList(content.entourage.brideParents);
+  const coinBearer = cleanList(content.entourage.coinBearer);
+  const bibleBearer = cleanList(content.entourage.bibleBearer);
+  const ringBearer = cleanList(content.entourage.ringBearer);
+  const flower = cleanList(content.entourage.flower);
+  const sponsorCount = sponsorMale.length + sponsorFemale.length;
+  const entourageCount =
+    groomParents.length +
+    brideParents.length +
+    groomsmen.length +
+    bridesmaid.length +
+    coinBearer.length +
+    bibleBearer.length +
+    ringBearer.length +
+    flower.length +
+    (content.entourage.bestMan ? 1 : 0) +
+    (content.entourage.maidOfHonor ? 1 : 0);
+  const programmeCount = programmeTop.length;
+  const denseMode = sponsorCount > 18 || entourageCount > 22 || programmeCount > 9;
+  const compactMode = sponsorCount > 24 || entourageCount > 30 || programmeCount > 11;
+  const insideScale = compactMode ? 0.9 : denseMode ? 0.95 : 1;
+  const rightPanelLineCount =
+    sponsorMale.length +
+    sponsorFemale.length +
+    groomParents.length +
+    brideParents.length +
+    groomsmen.length +
+    bridesmaid.length +
+    coinBearer.length +
+    bibleBearer.length +
+    ringBearer.length +
+    flower.length +
+    (content.entourage.bestMan ? 1 : 0) +
+    (content.entourage.maidOfHonor ? 1 : 0);
+  const wrapLines = (items: string[]) =>
+    items.reduce((sum, value) => sum + Math.max(1, Math.ceil((value || '').trim().length / 22)), 0);
+  const wrappedRightPanelLines =
+    wrapLines(sponsorMale) +
+    wrapLines(sponsorFemale) +
+    wrapLines(groomParents) +
+    wrapLines(brideParents) +
+    wrapLines(groomsmen) +
+    wrapLines(bridesmaid) +
+    wrapLines(coinBearer) +
+    wrapLines(bibleBearer) +
+    wrapLines(ringBearer) +
+    wrapLines(flower) +
+    (content.entourage.bestMan ? Math.max(1, Math.ceil(content.entourage.bestMan.trim().length / 22)) : 0) +
+    (content.entourage.maidOfHonor ? Math.max(1, Math.ceil(content.entourage.maidOfHonor.trim().length / 22)) : 0);
+  const notesLineEstimate = Math.max(1, Math.ceil((content.entourage.verse || '').trim().length / 64));
+  const totalRightPanelLines = wrappedRightPanelLines + notesLineEstimate + 20;
+  const density = Math.max(0, Math.min(1, (totalRightPanelLines - 44) / 20));
+  const nameSize = `${(0.98 - density * 0.14).toFixed(3)}rem`;
+  const labelSize = `${(0.76 - density * 0.10).toFixed(3)}rem`;
+  const lineGap = density > 0.65 ? 1 : density > 0.35 ? 2 : 3;
 
   const renderCoverSpread = () => (
     <div className="booklet-grid grid grid-cols-2">
-      <article style={{ borderRight: `1px dashed ${BORDER}`, position: 'relative', minHeight: 650, overflow: 'hidden' }}>
-        {venuePrintImage ? (
-          <img src={venuePrintImage} alt="Back cover" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-        ) : null}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(20,10,5,0.2), rgba(20,10,5,0.65))' }} />
-        <div style={{ position: 'relative', zIndex: 2, color: '#FFFDF9', padding: 26, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      <article style={{ borderRight: `1px dashed ${BORDER}`, minHeight: 650, background: CREAM_SECTION, padding: 26 }}>
+        <div style={{ color: BROWN_DARK, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
-            <p className="font-sans-body" style={{ textTransform: 'uppercase', letterSpacing: '0.3em', fontSize: 11, color: '#E8D5B7' }}>Venue</p>
-            <h3 className="font-serif" style={{ fontSize: '2rem', fontWeight: 300 }}>{content.venueTitle}</h3>
-            <p className="font-sans-body" style={{ color: '#F3E1C2' }}>{content.venueAddressLine1}</p>
-            <p className="font-sans-body" style={{ color: '#F3E1C2' }}>{content.venueAddressLine2}</p>
+            <p className="font-sans-body" style={{ textTransform: 'uppercase', letterSpacing: '0.3em', fontSize: 11, color: GOLD }}>Venue</p>
+            <h3 className="font-serif" style={{ fontSize: '2rem', fontWeight: 300, color: BROWN_DARK, lineHeight: 1.2 }}>{content.venueTitle}</h3>
+            <p className="font-sans-body" style={{ color: BROWN_MID }}>{content.venueAddressLine1}</p>
+            <p className="font-sans-body" style={{ color: BROWN_MID }}>{content.venueAddressLine2}</p>
+            {venuePrintImage ? (
+              <div style={{ marginTop: 14, border: `1px solid ${BORDER}`, padding: 6, maxWidth: '84%', background: CREAM }}>
+                <img src={venuePrintImage} alt="Venue" style={{ width: '100%', height: 250, objectFit: 'cover', display: 'block' }} />
+              </div>
+            ) : null}
           </div>
-          <p className="font-serif italic" style={{ color: '#E8D5B7' }}>{content.footerMessage}</p>
+          <p className="font-serif italic" style={{ color: BROWN_MID }}>{content.footerMessage}</p>
         </div>
       </article>
 
@@ -152,13 +221,20 @@ export default async function WeddingPrintPage({ params, searchParams }: PrintPa
   );
 
   const renderInsideSpread = () => (
-    <div className="booklet-grid grid grid-cols-2">
-      <article style={{ borderRight: `1px dashed ${BORDER}`, padding: 22, background: CREAM_SECTION }}>
+    <div
+      className="booklet-grid grid grid-cols-2 print-scale-inside"
+      style={
+        insideScale < 1
+          ? ({ '--inside-scale': String(insideScale) } as React.CSSProperties)
+          : undefined
+      }
+    >
+      <article style={{ borderRight: `1px dashed ${BORDER}`, padding: 22, background: CREAM, position: 'relative', height: '100%' }}>
         <p className="font-sans-body" style={{ textTransform: 'uppercase', letterSpacing: '0.3em', fontSize: 11, color: GOLD }}>
           {content.invitationEyebrow}
         </p>
         <h2 className="font-serif" style={{ color: BROWN_DARK, fontSize: '2rem', fontWeight: 300 }}>{content.invitationTitle}</h2>
-        <p className="font-serif italic" style={{ color: BROWN_MID, lineHeight: 1.65, marginTop: 10 }}>
+        <p className="font-serif italic" style={{ color: BROWN_MID, lineHeight: denseMode ? 1.45 : 1.65, marginTop: 10, fontSize: denseMode ? '0.93rem' : '1rem' }}>
           {sectionText('invitation', content.invitationText)}
         </p>
         <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
@@ -167,78 +243,218 @@ export default async function WeddingPrintPage({ params, searchParams }: PrintPa
           </h3>
           <div className="space-y-2 mt-2">
             <p className="font-sans-body" style={{ color: BROWN_MID }}>
-              <strong>Date:</strong> {content.eventDetails[0]?.line1} {content.eventDetails[0]?.line2}
+              <strong>Date:</strong> {dateCard?.line1 || ''} {dateCard?.line2 || content.weddingDateLabel}
             </p>
             <p className="font-sans-body" style={{ color: BROWN_MID }}>
-              <strong>Time:</strong> {content.eventDetails[1]?.line1} {content.eventDetails[1]?.line2}
+              <strong>Time:</strong> {timeCard?.line1 || ''} {timeCard?.line2 || ''}
             </p>
             <p className="font-sans-body" style={{ color: BROWN_MID }}>
-              <strong>Venue:</strong> {content.venueTitle}
+              <strong>Venue:</strong> {venueCard?.line1 || content.venueTitle}
             </p>
           </div>
+        </div>
+        <div style={{ marginTop: 14, paddingTop: 10, borderTop: `1px solid ${BORDER}` }}>
+          <p className="font-sans-body text-xs uppercase tracking-[0.2em]" style={{ color: BROWN_LIGHT, marginBottom: 4 }}>Programme</p>
+          {programmeTop.length ? (
+            programmeTop.map((item, i, arr) => (
+              <div
+                key={`${item.time}-${item.label}`}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '72px 24px 1fr',
+                  alignItems: 'start',
+                  gap: 8,
+                  paddingBottom: i < arr.length - 1 ? 8 : 0,
+                }}
+              >
+                <div style={{ textAlign: 'left', paddingTop: 1 }}>
+                  <span className="font-sans-body" style={{ color: BROWN_LIGHT, fontSize: compactMode ? '0.75rem' : '0.82rem', letterSpacing: '0.02em' }}>
+                    {item.time}
+                  </span>
+                </div>
+
+                <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                  <span
+                    aria-hidden
+                    style={{
+                      width: compactMode ? 14 : 16,
+                      height: compactMode ? 14 : 16,
+                      borderRadius: 999,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: GOLD,
+                      color: '#fff',
+                      position: 'relative',
+                      zIndex: 2,
+                    }}
+                  >
+                    <ProgrammeIcon icon={item.icon} />
+                  </span>
+                  {i < arr.length - 1 ? (
+                    <span
+                      aria-hidden
+                      style={{
+                        position: 'absolute',
+                        top: compactMode ? 14 : 16,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: 1,
+                        height: 'calc(100% + 8px)',
+                        background: BORDER,
+                      }}
+                    />
+                  ) : null}
+                </div>
+
+                <p className="font-serif" style={{ color: BROWN_DARK, fontSize: compactMode ? '0.9rem' : '0.98rem', lineHeight: 1.3 }}>
+                  {item.label}
+                </p>
+              </div>
+            ))
+          ) : (
+            <p className="font-sans-body" style={{ color: BROWN_MID, fontSize: '0.93rem' }}>No programme items yet.</p>
+          )}
+        </div>
+        <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 6, position: 'absolute', left: 22, right: 22, bottom: 0, background: CREAM }}>
+          <p className="font-sans-body text-xs uppercase tracking-[0.2em]" style={{ color: BROWN_LIGHT, marginBottom: 2, fontSize: labelSize }}>Notes</p>
+          <p className="font-serif italic" style={{ color: BROWN_MID, fontSize: compactMode ? '0.75rem' : '0.82rem', lineHeight: 1.3 }}>
+            {content.entourage.verse || ' '}
+          </p>
         </div>
       </article>
 
-      <article style={{ padding: 22, background: CREAM }}>
-        <h3 className="font-serif" style={{ color: BROWN_DARK, fontSize: '1.45rem', fontWeight: 300 }}>
-          Sponsors & Programme
-        </h3>
-
-        <div className="grid grid-cols-2 gap-4 mt-3">
-          <div>
-            <p className="font-sans-body text-xs uppercase tracking-[0.2em]" style={{ color: BROWN_LIGHT }}>
-              Principal Sponsors (Male)
-            </p>
-            {sponsorMale.map((name) => (
-              <p key={name} className="font-serif" style={{ color: BROWN_DARK, fontSize: '0.98rem' }}>
-                {name}
-              </p>
-            ))}
-          </div>
-          <div>
-            <p className="font-sans-body text-xs uppercase tracking-[0.2em]" style={{ color: BROWN_LIGHT }}>
-              Principal Sponsors (Female)
-            </p>
-            {sponsorFemale.map((name) => (
-              <p key={name} className="font-serif" style={{ color: BROWN_DARK, fontSize: '0.98rem' }}>
-                {name}
-              </p>
-            ))}
+      <article
+        style={{
+          background: CREAM,
+          position: 'relative',
+          breakInside: 'avoid',
+          pageBreakInside: 'avoid',
+          minHeight: 650,
+          height: '100%',
+        }}
+      >
+        <div
+          style={
+            {
+              padding: compactMode ? 16 : 22,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              gap: compactMode ? 8 : 12,
+            } as React.CSSProperties
+          }
+        >
+        <div>
+          <p className="font-sans-body text-xs uppercase tracking-[0.2em]" style={{ color: BROWN_LIGHT, marginBottom: 6, fontSize: labelSize }}>
+            Entourage
+          </p>
+          <div className="grid grid-cols-2 gap-4" style={{ columnGap: compactMode ? 10 : 16 }}>
+            <div>
+              <p className="font-sans-body text-xs uppercase tracking-[0.14em]" style={{ color: BROWN_LIGHT, fontSize: labelSize }}>Parents of Groom</p>
+              {groomParents.map((name) => (
+                <p key={name} className="font-serif" style={{ color: BROWN_DARK, fontSize: nameSize, lineHeight: 1.25, marginBottom: lineGap }}>{name}</p>
+              ))}
+            </div>
+            <div>
+              <p className="font-sans-body text-xs uppercase tracking-[0.14em]" style={{ color: BROWN_LIGHT, fontSize: labelSize }}>Parents of Bride</p>
+              {brideParents.map((name) => (
+                <p key={name} className="font-serif" style={{ color: BROWN_DARK, fontSize: nameSize, lineHeight: 1.25, marginBottom: lineGap }}>{name}</p>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-2 gap-4" style={{ columnGap: compactMode ? 10 : 16 }}>
           <div>
-            <p className="font-sans-body text-xs uppercase tracking-[0.2em]" style={{ color: BROWN_LIGHT }}>
-              Best Man / Groomsmen
-            </p>
+            <p className="font-sans-body text-xs uppercase tracking-[0.14em]" style={{ color: BROWN_LIGHT, fontSize: labelSize }}>Best Man</p>
             {content.entourage.bestMan ? (
-              <p className="font-serif" style={{ color: BROWN_DARK, fontSize: '0.98rem' }}>{content.entourage.bestMan}</p>
-            ) : null}
+              <p className="font-serif" style={{ color: BROWN_DARK, fontSize: nameSize, lineHeight: 1.25, marginBottom: lineGap }}>{content.entourage.bestMan}</p>
+            ) : <p className="font-sans-body" style={{ color: BROWN_MID, fontSize: '0.82rem' }}>No entries yet.</p>}
+          </div>
+          <div>
+            <p className="font-sans-body text-xs uppercase tracking-[0.14em]" style={{ color: BROWN_LIGHT, fontSize: labelSize }}>Maid of Honor</p>
+            {content.entourage.maidOfHonor ? (
+              <p className="font-serif" style={{ color: BROWN_DARK, fontSize: nameSize, lineHeight: 1.25, marginBottom: lineGap }}>{content.entourage.maidOfHonor}</p>
+            ) : <p className="font-sans-body" style={{ color: BROWN_MID, fontSize: '0.82rem' }}>No entries yet.</p>}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4" style={{ columnGap: compactMode ? 10 : 16 }}>
+          <div>
+            <p className="font-sans-body text-xs uppercase tracking-[0.14em]" style={{ color: BROWN_LIGHT, fontSize: labelSize }}>Groomsmen</p>
             {groomsmen.map((name) => (
-              <p key={name} className="font-serif" style={{ color: BROWN_DARK, fontSize: '0.98rem' }}>{name}</p>
+              <p key={name} className="font-serif" style={{ color: BROWN_DARK, fontSize: nameSize, lineHeight: 1.25, marginBottom: lineGap }}>{name}</p>
             ))}
           </div>
           <div>
-            <p className="font-sans-body text-xs uppercase tracking-[0.2em]" style={{ color: BROWN_LIGHT }}>
-              Maid of Honor / Bridesmaid
-            </p>
-            {content.entourage.maidOfHonor ? (
-              <p className="font-serif" style={{ color: BROWN_DARK, fontSize: '0.98rem' }}>{content.entourage.maidOfHonor}</p>
-            ) : null}
+            <p className="font-sans-body text-xs uppercase tracking-[0.14em]" style={{ color: BROWN_LIGHT, fontSize: labelSize }}>Bridesmaid</p>
             {bridesmaid.map((name) => (
-              <p key={name} className="font-serif" style={{ color: BROWN_DARK, fontSize: '0.98rem' }}>{name}</p>
+              <p key={name} className="font-serif" style={{ color: BROWN_DARK, fontSize: nameSize, lineHeight: 1.25, marginBottom: lineGap }}>{name}</p>
             ))}
           </div>
         </div>
 
-        <div style={{ marginTop: 14, paddingTop: 10, borderTop: `1px solid ${BORDER}` }}>
-          <p className="font-sans-body text-xs uppercase tracking-[0.2em]" style={{ color: BROWN_LIGHT }}>Programme</p>
-          {programmeTop.map((item) => (
-            <p key={`${item.time}-${item.label}`} className="font-sans-body" style={{ color: BROWN_MID, fontSize: '0.94rem' }}>
-              <strong style={{ color: BROWN_DARK }}>{item.time}</strong> - {item.label}
-            </p>
-          ))}
+        <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 10 }}>
+          <div className="grid grid-cols-2 gap-4 mt-1" style={{ columnGap: compactMode ? 10 : 16 }}>
+            <div>
+              <p className="font-sans-body text-xs uppercase tracking-[0.2em]" style={{ color: BROWN_LIGHT, marginBottom: 4, fontSize: labelSize }}>
+                Principal Sponsors (Male)
+              </p>
+              {sponsorMale.map((name) => (
+                <p key={name} className="font-serif" style={{ color: BROWN_DARK, fontSize: nameSize, lineHeight: 1.25, marginBottom: lineGap }}>
+                  {name}
+                </p>
+              ))}
+              {!sponsorMale.length ? <p className="font-sans-body" style={{ color: BROWN_MID, fontSize: '0.82rem' }}>No entries yet.</p> : null}
+            </div>
+            <div>
+              <p className="font-sans-body text-xs uppercase tracking-[0.2em]" style={{ color: BROWN_LIGHT, marginBottom: 4, fontSize: labelSize }}>
+                Principal Sponsors (Female)
+              </p>
+              {sponsorFemale.map((name) => (
+                <p key={name} className="font-serif" style={{ color: BROWN_DARK, fontSize: nameSize, lineHeight: 1.25, marginBottom: lineGap }}>
+                  {name}
+                </p>
+              ))}
+              {!sponsorFemale.length ? <p className="font-sans-body" style={{ color: BROWN_MID, fontSize: '0.82rem' }}>No entries yet.</p> : null}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 10 }}>
+          <div className="grid grid-cols-2 gap-4" style={{ columnGap: compactMode ? 10 : 16 }}>
+            <div>
+              <p className="font-sans-body text-xs uppercase tracking-[0.14em]" style={{ color: BROWN_LIGHT, fontSize: labelSize }}>Coin Bearer</p>
+              {coinBearer.map((name) => (
+                <p key={name} className="font-serif" style={{ color: BROWN_DARK, fontSize: nameSize, lineHeight: 1.25, marginBottom: lineGap }}>{name}</p>
+              ))}
+            </div>
+            <div>
+              <p className="font-sans-body text-xs uppercase tracking-[0.14em]" style={{ color: BROWN_LIGHT, fontSize: labelSize }}>Bible Bearer</p>
+              {bibleBearer.map((name) => (
+                <p key={name} className="font-serif" style={{ color: BROWN_DARK, fontSize: nameSize, lineHeight: 1.25, marginBottom: lineGap }}>{name}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 10 }}>
+          <div className="grid grid-cols-2 gap-4" style={{ columnGap: compactMode ? 10 : 16 }}>
+            <div>
+              <p className="font-sans-body text-xs uppercase tracking-[0.14em]" style={{ color: BROWN_LIGHT, fontSize: labelSize }}>Ring Bearer</p>
+              {ringBearer.map((name) => (
+                <p key={name} className="font-serif" style={{ color: BROWN_DARK, fontSize: nameSize, lineHeight: 1.25, marginBottom: lineGap }}>{name}</p>
+              ))}
+            </div>
+            <div>
+              <p className="font-sans-body text-xs uppercase tracking-[0.14em]" style={{ color: BROWN_LIGHT, fontSize: labelSize }}>Flower</p>
+              {flower.map((name) => (
+                <p key={name} className="font-serif" style={{ color: BROWN_DARK, fontSize: nameSize, lineHeight: 1.25, marginBottom: lineGap }}>{name}</p>
+              ))}
+            </div>
+          </div>
+        </div>
         </div>
       </article>
     </div>
@@ -272,13 +488,17 @@ export default async function WeddingPrintPage({ params, searchParams }: PrintPa
           .booklet-side {
             break-after: page;
             page-break-after: always;
+            height: calc(210mm - 12mm);
+            overflow: hidden;
           }
           .booklet-side:last-child {
             break-after: auto;
             page-break-after: auto;
           }
           .booklet-grid {
-            min-height: 196mm;
+            height: calc(210mm - 12mm);
+            min-height: calc(210mm - 12mm);
+            align-items: stretch;
           }
           .half-stack {
             display: grid;
@@ -299,6 +519,10 @@ export default async function WeddingPrintPage({ params, searchParams }: PrintPa
             width: 200%;
             height: 200%;
             transform: scale(0.5);
+            transform-origin: top left;
+          }
+          .print-scale-inside {
+            zoom: var(--inside-scale, 1);
             transform-origin: top left;
           }
         }

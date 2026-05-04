@@ -230,7 +230,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
               data-highlight-char="&"
               data-highlight-color={GOLD}
               data-allow-fall-letters="1"
-              data-original-text={`${content.brideName} & ${content.groomName}`}
+              data-original-text={`${content.groomName} & ${content.brideName}`}
               style={{
                 fontSize: isEditorial ? 'clamp(2.8rem, 8vw, 6rem)' : 'clamp(3rem, 10vw, 7rem)',
                 fontWeight: isLuxe ? 400 : 300,
@@ -239,9 +239,9 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                 letterSpacing: isEditorial ? '0.01em' : '-0.01em',
               }}
             >
-              {content.brideName}
-              <span style={{ color: GOLD, fontStyle: 'italic' }}> &amp; </span>
               {content.groomName}
+              <span style={{ color: GOLD, fontStyle: 'italic' }}> &amp; </span>
+              {content.brideName}
             </h1>
           )}
 
@@ -919,7 +919,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
             </div>
 
             <div className="rounded-2xl p-7 md:p-10" style={{ background: theme.card, border: `1px solid ${BORDER}`, boxShadow: theme.cardShadow }}>
-              <RSVPForm coupleNames={`${content.brideName} & ${content.groomName}`} weddingId={site.wedding.id} />
+              <RSVPForm coupleNames={`${content.groomName} & ${content.brideName}`} weddingId={site.wedding.id} />
             </div>
           </div>
         </section>
@@ -929,7 +929,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
 
       <footer className="px-6 py-14 text-center" style={{ background: BROWN_DARK }}>
         <h3 className="font-serif mb-3" style={{ fontSize: 'clamp(1.6rem, 4vw, 2.6rem)', color: '#FFFDF9', fontWeight: 300 }}>
-          {content.brideName} <span style={{ color: GOLD, fontStyle: 'italic' }}>&amp;</span> {content.groomName}
+          {content.groomName} <span style={{ color: GOLD, fontStyle: 'italic' }}>&amp;</span> {content.brideName}
         </h3>
         <p className="font-serif italic mb-6" style={{ color: '#C4A882', fontSize: '1rem' }}>
           {content.weddingDateLabel} • {content.venueTitle}
