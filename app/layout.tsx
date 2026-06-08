@@ -17,8 +17,9 @@ const lato = Lato({
 });
 
 export const metadata: Metadata = {
-  title: 'Claire & James — Wedding Invitation',
-  description: 'Join us in celebrating the wedding of Claire & James on May 09, 2026.',
+  title: 'Wedding Invitation',
+  description: 'You are invited to celebrate this special day.',
+  icons: { icon: '/icon.svg' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -219,10 +219,14 @@ const ENTOURAGE_GROUP_OPTIONS = [
   'principal_sponsors_female',
   'groomsmen',
   'bridesmaid',
+  'candle_sponsors',
+  'veil_sponsors',
+  'cord_sponsors',
   'coin_bearer',
   'bible_bearer',
   'ring_bearer',
   'flower',
+  'little_bride',
 ];
 
 const formatSelectLabel = (value: string) =>

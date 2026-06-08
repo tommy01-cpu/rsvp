@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import RSVPForm from '@/components/RSVPForm';
 import FallingText from '@/components/FallingText';
 import ScrollReveal from '@/components/ScrollReveal';
@@ -8,6 +9,28 @@ import { getWeddingSiteData } from '@/lib/wedding-platform';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const site = await getWeddingSiteData(params.slug);
+  const { brideName, groomName, weddingDateLabel, heroImageUrl } = site.content;
+  const title = `${brideName} & ${groomName} — Wedding Invitation`;
+  const description = `Join us in celebrating the wedding of ${brideName} & ${groomName} on ${weddingDateLabel}.`;
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: heroImageUrl ? [{ url: heroImageUrl }] : [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: heroImageUrl ? [heroImageUrl] : [],
+    },
+  };
+}
 
 function Divider({ gold }: { gold: string }) {
   return (
@@ -239,9 +262,9 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                 letterSpacing: isEditorial ? '0.01em' : '-0.01em',
               }}
             >
-              {content.groomName}
-              <span style={{ color: GOLD, fontStyle: 'italic' }}> &amp; </span>
-              {content.brideName}
+              <span style={{ display: 'block' }}>{content.groomName}</span>
+              <span style={{ display: 'block', color: GOLD, fontStyle: 'italic' }}>&amp;</span>
+              <span style={{ display: 'block' }}>{content.brideName}</span>
             </h1>
           )}
 
@@ -618,125 +641,216 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
             <h2 className="font-serif mb-8" style={{ fontSize: 'clamp(1.9rem, 4vw, 3rem)', fontWeight: 300, color: GOLD }}>
               {content.entourageTitle}
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 items-start">
-              <div className="text-center md:text-left">
-                <div className="reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-right'), 120)}>
-                  <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Parents of the Groom</p>
-                  {content.entourage.groomParents.map((name) => (
-                    <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`} style={{ color: BROWN_DARK }}>
-                      {name}
-                    </p>
-                  ))}
+
+            {(content.entourage.groomParents.length > 0 || content.entourage.brideParents.length > 0) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 items-start">
+                {content.entourage.groomParents.length > 0 && (
+                  <div className="text-center md:text-left">
+                    <div className="reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-right'), 120)}>
+                      <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Parents of the Groom</p>
+                      {content.entourage.groomParents.map((name) => (
+                        <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`} style={{ color: BROWN_DARK }}>
+                          {name}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {content.entourage.brideParents.length > 0 && (
+                  <div className="text-center md:text-right">
+                    <div className="reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-left'), 140)}>
+                      <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Parents of the Bride</p>
+                      {content.entourage.brideParents.map((name) => (
+                        <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`} style={{ color: BROWN_DARK }}>
+                          {name}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!!content.entourage.officiatingMinister && (
+              <div className="text-center mb-10 reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-fade'), 160)}>
+                <p className="font-sans-body text-sm tracking-wide uppercase mb-2" style={{ color: BROWN_LIGHT }}>Officiating Minister</p>
+                <p className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`} style={{ color: BROWN_DARK, fontSize: '1.25rem' }}>
+                  {content.entourage.officiatingMinister}
+                </p>
+              </div>
+            )}
+
+            {(content.entourage.principalSponsorsMale.length > 0 || content.entourage.principalSponsorsFemale.length > 0) && (
+              <div className="mb-10 reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-fade'), 120)}>
+                <p className="font-sans-body text-sm tracking-wide uppercase mb-6" style={{ color: BROWN_LIGHT }}>Principal Sponsors</p>
+                <div className="grid grid-cols-2 gap-8 max-w-2xl mx-auto">
+                  {content.entourage.principalSponsorsMale.length > 0 && (
+                    <div className="text-center md:text-right reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-right'), 180)}>
+                      <div className="space-y-2">
+                        {content.entourage.principalSponsorsMale.map((name) => (
+                          <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>
+                            {name}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {content.entourage.principalSponsorsFemale.length > 0 && (
+                    <div className="text-center md:text-left reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-left'), 200)}>
+                      <div className="space-y-2">
+                        {content.entourage.principalSponsorsFemale.map((name) => (
+                          <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>
+                            {name}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="text-center md:text-right">
-                <div className="reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-left'), 140)}>
-                  <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Parents of the Bride</p>
-                  {content.entourage.brideParents.map((name) => (
-                    <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`} style={{ color: BROWN_DARK }}>
-                      {name}
-                    </p>
-                  ))}
+            )}
+
+            {(!!content.entourage.bestMan || content.entourage.groomsmen.length > 0 || !!content.entourage.maidOfHonor || content.entourage.bridesmaid.length > 0 || content.entourage.candleSponsors.length > 0 || content.entourage.veilSponsors.length > 0 || content.entourage.cordSponsors.length > 0) && (
+              <div className="mt-8 text-center" style={{ color: BROWN_DARK }}>
+                <p className="font-sans-body text-sm tracking-wide uppercase mb-6" style={{ color: BROWN_LIGHT }}>Secondary Sponsors</p>
+
+                {(content.entourage.candleSponsors.length > 0 || content.entourage.veilSponsors.length > 0 || content.entourage.cordSponsors.length > 0) && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto mb-10 reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-fade'), 220)}>
+                    {content.entourage.candleSponsors.length > 0 && (
+                      <div>
+                        <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Candle Sponsors</p>
+                        <div className="space-y-1">
+                          {content.entourage.candleSponsors.map((name) => (
+                            <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>{name}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {content.entourage.veilSponsors.length > 0 && (
+                      <div>
+                        <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Veil Sponsors</p>
+                        <div className="space-y-1">
+                          {content.entourage.veilSponsors.map((name) => (
+                            <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>{name}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {content.entourage.cordSponsors.length > 0 && (
+                      <div>
+                        <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Cord Sponsors</p>
+                        <div className="space-y-1">
+                          {content.entourage.cordSponsors.map((name) => (
+                            <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>{name}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-8 max-w-3xl mx-auto mb-8">
+                  {(!!content.entourage.bestMan || content.entourage.groomsmen.length > 0) && (
+                    <div className="text-center md:text-left reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-right'), 220)}>
+                      {!!content.entourage.bestMan && (
+                        <>
+                          <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Best Man</p>
+                          <p className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>{content.entourage.bestMan}</p>
+                        </>
+                      )}
+                      {content.entourage.groomsmen.length > 0 && (
+                        <>
+                          <p className="font-sans-body text-sm uppercase mt-6" style={{ color: BROWN_LIGHT }}>Groomsmen</p>
+                          <div className="mt-2 space-y-1">
+                            {content.entourage.groomsmen.map((name) => (
+                              <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>
+                                {name}
+                              </p>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {(!!content.entourage.maidOfHonor || content.entourage.bridesmaid.length > 0) && (
+                    <div className="text-center md:text-right reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-left'), 240)}>
+                      {!!content.entourage.maidOfHonor && (
+                        <>
+                          <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Maid of Honor</p>
+                          <p className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>{content.entourage.maidOfHonor}</p>
+                        </>
+                      )}
+                      {content.entourage.bridesmaid.length > 0 && (
+                        <>
+                          <p className="font-sans-body text-sm uppercase mt-6" style={{ color: BROWN_LIGHT }}>Bridesmaid</p>
+                          <div className="mt-2 space-y-1">
+                            {content.entourage.bridesmaid.map((name) => (
+                              <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>
+                                {name}
+                              </p>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="text-center mb-10 reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-fade'), 160)}>
-              <p className="font-sans-body text-sm tracking-wide uppercase mb-2" style={{ color: BROWN_LIGHT }}>Officiating Minister</p>
-              <p className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`} style={{ color: BROWN_DARK, fontSize: '1.25rem' }}>
-                {content.entourage.officiatingMinister}
-              </p>
-            </div>
 
-            <div className="mb-10 reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-fade'), 120)}>
-              <p className="font-sans-body text-sm tracking-wide uppercase mb-6" style={{ color: BROWN_LIGHT }}>Principal Sponsors</p>
-
-              <div className="grid grid-cols-2 gap-8 max-w-2xl mx-auto">
-                <div className="text-center md:text-right reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-right'), 180)}>
-                  <div className="space-y-2">
-                    {content.entourage.principalSponsorsMale.map((name) => (
-                      <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>
-                        {name}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="text-center md:text-left reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-left'), 200)}>
-                  <div className="space-y-2">
-                    {content.entourage.principalSponsorsFemale.map((name) => (
-                      <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>
-                        {name}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 text-center" style={{ color: BROWN_DARK }}>
-              <p className="font-sans-body text-sm tracking-wide uppercase mb-6" style={{ color: BROWN_LIGHT }}>Secondary Sponsors</p>
-
-              <div className="grid grid-cols-2 gap-8 max-w-3xl mx-auto mb-8">
-                <div className="text-center md:text-left reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-right'), 220)}>
-                  <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Best Man</p>
-                  <p className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>{content.entourage.bestMan}</p>
-
-                  <p className="font-sans-body text-sm uppercase mt-6" style={{ color: BROWN_LIGHT }}>Groomsmen</p>
-                  <div className="mt-2 space-y-1">
-                    {content.entourage.groomsmen.map((name) => (
-                      <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>
-                        {name}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="text-center md:text-right reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-left'), 240)}>
-                  <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Maid of Honor</p>
-                  <p className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>{content.entourage.maidOfHonor}</p>
-
-                  <p className="font-sans-body text-sm uppercase mt-6" style={{ color: BROWN_LIGHT }}>Bridesmaid</p>
-                  <div className="mt-2 space-y-1">
-                    {content.entourage.bridesmaid.map((name) => (
-                      <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>
-                        {name}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
+            {(content.entourage.coinBearer.length > 0 || content.entourage.bibleBearer.length > 0 || content.entourage.ringBearer.length > 0) && (
               <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
-                <div className="reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-right'), 260)}>
-                  <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Coin Bearer</p>
-                  {content.entourage.coinBearer.map((name) => (
-                    <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>
-                      {name}
-                    </p>
-                  ))}
-                </div>
-                <div className="reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-fade'), 280)}>
-                  <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Bible Bearer</p>
-                  {content.entourage.bibleBearer.map((name) => (
-                    <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>
-                      {name}
-                    </p>
-                  ))}
-                </div>
-                <div className="reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-left'), 300)}>
-                  <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Ring Bearer</p>
-                  {content.entourage.ringBearer.map((name) => (
-                    <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>
+                {content.entourage.coinBearer.length > 0 && (
+                  <div className="reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-right'), 260)}>
+                    <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Coin Bearer</p>
+                    {content.entourage.coinBearer.map((name) => (
+                      <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>
+                        {name}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {content.entourage.bibleBearer.length > 0 && (
+                  <div className="reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-fade'), 280)}>
+                    <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Bible Bearer</p>
+                    {content.entourage.bibleBearer.map((name) => (
+                      <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>
+                        {name}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {content.entourage.ringBearer.length > 0 && (
+                  <div className="reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-left'), 300)}>
+                    <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Ring Bearer</p>
+                    {content.entourage.ringBearer.map((name) => (
+                      <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>
+                        {name}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {content.entourage.littleBride.length > 0 && (
+              <div className="mt-8 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-fade'), 310)}>
+                <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Little Bride</p>
+                <div className="space-y-1">
+                  {content.entourage.littleBride.map((name) => (
+                    <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>
                       {name}
                     </p>
                   ))}
                 </div>
               </div>
+            )}
 
-              <div className="mt-8 reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-fade'), 320)}>
-                <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Flower</p>
-                <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+            {content.entourage.flower.length > 0 && (
+              <div className="mt-8 text-center reveal-on-scroll opacity-0" {...sectionAnimAttrsWithOffset('entourage', sectionAnim('entourage', 'reveal-fade'), 320)}>
+                <p className="font-sans-body text-sm uppercase mb-2" style={{ color: BROWN_LIGHT }}>Flower</p>
+                <div className="space-y-1">
                   {content.entourage.flower.map((name) => (
                     <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>
                       {name}
@@ -744,11 +858,13 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                   ))}
                 </div>
               </div>
+            )}
 
+            {!!content.entourage.verse && (
               <p className="font-serif italic mt-8" style={{ color: BROWN_MID, fontSize: '0.98rem' }}>
                 {content.entourage.verse}
               </p>
-            </div>
+            )}
           </div>
         </section>
       )}

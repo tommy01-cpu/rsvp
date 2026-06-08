@@ -21,10 +21,14 @@ export type EntourageContent = {
   groomsmen: string[];
   maidOfHonor: string;
   bridesmaid: string[];
+  candleSponsors: string[];
+  veilSponsors: string[];
+  cordSponsors: string[];
   coinBearer: string[];
   bibleBearer: string[];
   ringBearer: string[];
   flower: string[];
+  littleBride: string[];
   verse: string;
 };
 
@@ -175,10 +179,14 @@ export const defaultWeddingContent: WeddingContent = {
     groomsmen: ['Emmanuel Navarez Jr.', 'John Arwin Dungcayan', 'Darwin Dungcayan', 'Jaryll Dungcayan'],
     maidOfHonor: 'Jessalyn R. Cruz',
     bridesmaid: ['Emelyn Yap Jandoc', 'Sharon Tabisaura', 'Abegail Apolinar', 'Alexa Granadil'],
+    candleSponsors: ['Elain Cedan', 'Christian Cedan'],
+    veilSponsors: ['Lovely Sumampong', 'Jinno Sumampong'],
+    cordSponsors: ['Shiera Arriesgado', 'Joey Espiritu'],
     coinBearer: ['Getulio Celis III', 'Sean Malinao'],
     bibleBearer: ['Rohan Zev', 'Gian Macaraig'],
     ringBearer: ['Renz lucas Hilot'],
     flower: ['Zoey Del Rosario', 'Princess Romero', 'Jeann Faith Dela Cruz'],
+    littleBride: [],
     verse: '"And above all these things put on love which is the bond of perfectness." - Colossians 3:14',
   },
 

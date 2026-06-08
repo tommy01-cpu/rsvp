@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Check, Loader as Loader2, Heart, X } from 'lucide-react';
+import { defaultWeddingContent } from '@/lib/cms-defaults';
 
 type FormState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -11,7 +12,9 @@ type RSVPFormProps = {
   weddingId?: string;
 };
 
-export default function RSVPForm({ coupleNames = 'Claire & James', weddingId }: RSVPFormProps) {
+const { brideName, groomName } = defaultWeddingContent;
+
+export default function RSVPForm({ coupleNames = `${brideName} & ${groomName}`, weddingId }: RSVPFormProps) {
   const [attending, setAttending] = useState<boolean | null>(null);
   const [formState, setFormState] = useState<FormState>('idle');
   const [errorMsg, setErrorMsg] = useState('');
