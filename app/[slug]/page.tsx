@@ -755,7 +755,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                       {!!content.entourage.bestMan && (
                         <>
                           <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Best Man</p>
-                          <p className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>{content.entourage.bestMan}</p>
+                          <p className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2 whitespace-nowrap`}>{content.entourage.bestMan}</p>
                         </>
                       )}
                       {content.entourage.groomsmen.length > 0 && (
@@ -763,7 +763,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                           <p className="font-sans-body text-sm uppercase mt-6" style={{ color: BROWN_LIGHT }}>Groomsmen</p>
                           <div className="mt-2 space-y-1">
                             {content.entourage.groomsmen.map((name) => (
-                              <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>
+                              <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} whitespace-nowrap`}>
                                 {name}
                               </p>
                             ))}
@@ -777,7 +777,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                       {!!content.entourage.maidOfHonor && (
                         <>
                           <p className="font-sans-body text-sm uppercase" style={{ color: BROWN_LIGHT }}>Maid of Honor</p>
-                          <p className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2`}>{content.entourage.maidOfHonor}</p>
+                          <p className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} mt-2 whitespace-nowrap`}>{content.entourage.maidOfHonor}</p>
                         </>
                       )}
                       {content.entourage.bridesmaid.length > 0 && (
@@ -785,7 +785,7 @@ export default async function WeddingBySlugPage({ params }: { params: { slug: st
                           <p className="font-sans-body text-sm uppercase mt-6" style={{ color: BROWN_LIGHT }}>Bridesmaid</p>
                           <div className="mt-2 space-y-1">
                             {content.entourage.bridesmaid.map((name) => (
-                              <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'}`}>
+                              <p key={name} className={`font-serif ${isClassic ? 'font-semibold' : 'font-normal'} whitespace-nowrap`}>
                                 {name}
                               </p>
                             ))}

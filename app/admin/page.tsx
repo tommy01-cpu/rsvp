@@ -1996,6 +1996,10 @@ export default function AdminPage() {
                 <input value={details.map_link} onChange={(e) => setDetails((p) => ({ ...p, map_link: e.target.value }))} placeholder="Map Link" className="w-full px-3 py-2 rounded-lg" style={{ border: `1.5px solid ${isCoreFieldDirty('map_link') ? '#DC2626' : '#E8D5B7'}` }} />
               </div>
               <div className="md:col-span-2">
+                <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Venue Description</label>
+                <textarea value={details.venue_description} onChange={(e) => setDetails((p) => ({ ...p, venue_description: e.target.value }))} placeholder="Describe the venue..." rows={3} className="w-full px-3 py-2 rounded-lg resize-none" style={{ border: `1.5px solid ${isCoreFieldDirty('venue_description') ? '#DC2626' : '#E8D5B7'}` }} />
+              </div>
+              <div className="md:col-span-2">
                 <label className="block text-xs mb-1" style={{ color: '#6B5744' }}>Domain</label>
                 <input
                   value={invitationDomain}
