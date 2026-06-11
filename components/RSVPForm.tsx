@@ -194,7 +194,7 @@ export default function RSVPForm({ coupleNames = `${brideName} & ${groomName}`, 
             onBlur={e => (e.target.style.borderColor = '#E8D5B7')}
           />
         </div>
-        {/* <div>
+        <div>
           <label className="block font-sans-body text-xs font-700 mb-1.5 tracking-widest uppercase" style={{ color: '#8B7355' }}>
             Number of Guests
           </label>
@@ -216,7 +216,7 @@ export default function RSVPForm({ coupleNames = `${brideName} & ${groomName}`, 
               <option key={n} value={n}>{n} {n === 1 ? 'guest' : 'guests'}</option>
             ))}
           </select>
-        </div> */}
+        </div>
       </div>
 
       {/* Dietary
